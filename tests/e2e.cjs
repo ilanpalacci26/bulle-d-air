@@ -29,6 +29,9 @@ const { chromium } = require('C:/Users/ilanp/.cache/codex-runtimes/codex-primary
 
   await page.goto(shareUrl, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.tracker', { timeout: 30000 });
+  await page.waitForSelector('.flight-facts', { timeout: 15000 });
+  const flightFacts = await page.locator('.flight-facts').innerText();
+  if (!flightFacts.includes('Départ prévu') || !flightFacts.includes('Arrivée estimée')) throw new Error('Flight timing details missing');
   await page.waitForSelector('.maplibregl-canvas', { timeout: 15000 });
   await page.waitForTimeout(8000);
   const desktop = await page.evaluate(() => ({

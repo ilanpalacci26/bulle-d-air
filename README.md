@@ -7,6 +7,8 @@ Bulle d’Air transforme un ou deux numéros de vol en lien public de suivi, act
 - création d’un lien sans compte pour un ou deux vols ;
 - résolution des routes et aéroports via ADSBdb ;
 - position ADS-B en direct via ADSB.lol lorsqu’elle est disponible ;
+- carnet de vol avec départ prévu, arrivée et durée estimées, distance, altitude, vitesse, cap et type d’avion ;
+- ETA recalculée pendant le vol et horaires affichés dans le fuseau de chaque aéroport via Open-Meteo ;
 - cartes Minecraft, Super Mario, Pokémon et LEGO sous forme d’univers visuels originaux non officiels ;
 - 1 à 8 avatars par emoji, initiales ou photo compressée ;
 - nom d’utilisateur et mot de passe de gestion généré une seule fois ;
@@ -16,7 +18,7 @@ Bulle d’Air transforme un ou deux numéros de vol en lien public de suivi, act
 
 ## Limite importante
 
-Sans clé de fournisseur aérien commercial, le retard est une estimation transparente : l’application compare l’heure prévue saisie par le créateur et la présence d’un signal ADS-B en vol. Ce n’est pas un statut officiel de compagnie. Les notifications de ce MVP nécessitent que la page reste ouverte.
+Sans clé de fournisseur aérien commercial, le retard, l’arrivée et la durée sont des estimations transparentes : l’application combine l’heure prévue saisie par le créateur, la distance de la route et, en vol, la position et la vitesse ADS-B. Les terminaux et portes sont affichés comme non communiqués. Ce ne sont pas des informations officielles de compagnie. Les notifications de ce MVP nécessitent que la page reste ouverte.
 
 ## Développement
 

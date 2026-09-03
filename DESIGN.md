@@ -115,6 +115,10 @@ Fond blanc, trait lavande et angle 12 px. Le focus combine trait violet et halo 
 
 La carte est la scene signature. Chaque theme change simultanement la route, les marqueurs, l’avion et les ornements; les controles et messages de donnees gardent une grammaire commune.
 
+### Flight Notebook
+
+Le carnet de vol associe une carte claire sur papier teinte a un tableau horaire en encre sombre. Depart et arrivee utilisent deux points colores, tandis que la duree occupe l’axe central; les donnees de telemetrie restent dans de petites cases calmes sous le tableau.
+
 ## Do's and Don'ts
 
 ### Do:

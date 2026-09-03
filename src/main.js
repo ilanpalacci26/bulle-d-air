@@ -366,6 +366,7 @@ function renderTracker(trip, tracking) {
       <div class="theme-switcher" aria-label="Changer le thème de la carte">${themes.map((t) => `<button data-theme="${t.id}" class="${t.id === trip.theme ? "active" : ""}"><span class="mini-theme ${t.id}"></span>${t.name}</button>`).join("")}</div>
       ${!active.position ? `<div class="no-signal">${icon("alert", 26)}<span><strong>Position en attente</strong><small>L’avion apparaîtra dès qu’un signal ADS-B public sera disponible.</small></span></div>` : ""}
     </section>
+    <section class="flight-facts" aria-label="Informations détaillées du vol">${flightFacts(active)}</section>
     <section class="flight-dock">
       <div class="route-progress"><span><b>${active.origin?.city || active.origin?.iata || "Départ"}</b><small>${formatTime(active.scheduledDeparture)}</small></span><div><i style="width:${Math.round(active.progress * 100)}%"></i><b style="left:${Math.round(active.progress * 100)}%">${icon("plane", 18)}</b></div><span><b>${active.destination?.city || active.destination?.iata || "Arrivée"}</b><small>${active.destination?.iata || ""}</small></span></div>
       <div class="crew"><div class="crew-stack">${trip.passengers.map((p, i) => `<span style="--avatar:${p.color};--i:${i}" title="${escapeHtml(p.name)}">${avatarContent(p)}</span>`).join("")}</div><p><strong>${trip.passengers.length} à bord</strong><small>${trip.passengers.map((p) => escapeHtml(p.name)).join(" · ")}</small></p></div>
@@ -400,6 +401,8 @@ async function refreshTracking(id) {
     status.querySelector("strong").textContent = active.status.label;
     document.querySelector(".map-overlay strong").textContent =
       active.status.detail;
+    const facts = document.querySelector(".flight-facts");
+    if (facts) facts.innerHTML = flightFacts(active);
     checkDelayNotification(result.trip, active);
     if (active.position && map) updatePlaneMarker(result.trip, active);
   } catch {
@@ -691,6 +694,56 @@ function formatTime(value) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+function formatFlightDateTime(value, timeZone) {
+  if (!value) return "Non disponible";
+  const options = {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+  };
+  if (timeZone) options.timeZone = timeZone;
+  try {
+    return new Date(value).toLocaleString("fr-FR", options);
+  } catch {
+    delete options.timeZone;
+    return new Date(value).toLocaleString("fr-FR", options);
+  }
+}
+function formatDuration(minutes) {
+  if (!Number.isFinite(minutes)) return "—";
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return `${hours ? `${hours} h ` : ""}${String(rest).padStart(2, "0")} min`;
+}
+function headingLabel(value) {
+  if (!Number.isFinite(value)) return "—";
+  const points = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"];
+  return `${points[Math.round(value / 45) % 8]} · ${Math.round(value)}°`;
+}
+function flightFacts(active) {
+  const live = active.timingSource === "live-estimate";
+  const position = active.position;
+  const arrival = active.estimatedArrival || active.plannedArrival;
+  const fact = (label, value, note = "") => `<div class="fact"><small>${escapeHtml(label)}</small><strong>${escapeHtml(value)}</strong>${note ? `<span>${escapeHtml(note)}</span>` : ""}</div>`;
+  return `<div class="facts-heading"><div><span class="eyebrow">Carnet de vol</span><h2>Les infos utiles, sans jargon</h2></div><span class="estimate-chip">${live ? "ETA recalculée en direct" : "Estimation selon la route"}</span></div>
+    <div class="time-board">
+      <article><span class="board-dot departure"></span><small>Départ prévu</small><strong>${formatFlightDateTime(active.scheduledDeparture, active.origin?.timeZone)}</strong><p>${escapeHtml(active.origin?.name || "Aéroport de départ non identifié")}</p><em>${escapeHtml(active.origin?.city || "")}${active.origin?.country ? ` · ${escapeHtml(active.origin.country)}` : ""}</em></article>
+      <div class="board-journey"><span>${icon("plane", 20)}</span><strong>${formatDuration(active.plannedDurationMinutes)}</strong><small>${Number.isFinite(active.distanceKm) ? `${active.distanceKm.toLocaleString("fr-FR")} km` : "Distance indisponible"}</small></div>
+      <article><span class="board-dot arrival"></span><small>${live ? "Arrivée estimée en direct" : "Arrivée estimée"}</small><strong>${formatFlightDateTime(arrival, active.destination?.timeZone)}</strong><p>${escapeHtml(active.destination?.name || "Aéroport d’arrivée non identifié")}</p><em>${escapeHtml(active.destination?.city || "")}${active.destination?.country ? ` · ${escapeHtml(active.destination.country)}` : ""}</em></article>
+    </div>
+    <div class="live-facts">
+      ${fact("Distance restante", Number.isFinite(active.remainingKm) ? `${active.remainingKm.toLocaleString("fr-FR")} km` : "En attente")}
+      ${fact("Altitude", position && position.altitude !== "ground" && Number.isFinite(Number(position.altitude)) ? `${Math.round(Number(position.altitude)).toLocaleString("fr-FR")} ft` : position?.altitude === "ground" ? "Au sol" : "En attente")}
+      ${fact("Vitesse sol", position && Number.isFinite(Number(position.speed)) ? `${Math.round(Number(position.speed))} kt` : "En attente")}
+      ${fact("Cap", position ? headingLabel(Number(position.heading)) : "En attente")}
+      ${fact("Avion", position?.aircraftType || "Non communiqué", position?.registration || "")}
+      ${fact("Terminal & porte", "Non communiqués", "Source gratuite")}
+    </div>
+    <p class="facts-note">Les heures sont affichées dans le fuseau de chaque aéroport. Le départ est celui saisi lors de la création. L’arrivée et la durée sont calculées depuis la route ADSBdb${live ? ", puis l’ETA est ajustée avec la position et la vitesse ADS-B" : ""}. Ce ne sont pas des horaires officiels de compagnie.</p>`;
 }
 function escapeHtml(value) {
   return String(value ?? "").replace(

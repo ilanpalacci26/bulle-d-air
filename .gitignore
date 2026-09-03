@@ -3,4 +3,5 @@ dist/
 .netlify/
 .env
 .DS_Store
+debug.log
 .impeccable/review/

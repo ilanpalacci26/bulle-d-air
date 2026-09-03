@@ -31,6 +31,8 @@ The creator enters one flight or two connecting flights, a planned departure dat
 
 - Flight lookup starts from an IATA or ICAO flight number.
 - ADSBdb resolves route and airport information; ADSB.lol supplies public live ADS-B position when available.
+- Open-Meteo resolves each airport time zone. The flight notebook shows the creator-provided departure, route-based arrival and duration estimates, distance, and live telemetry; it never presents those estimates as official airline data.
+- Terminal and gate remain explicitly unavailable unless a licensed schedule provider is added later.
 - Delay without a commercial status provider is explicitly labeled as an estimate based on the planned departure time and absence of a live airborne signal.
 - Links expire 48 hours after creation and are deleted lazily on access plus by an hourly cleanup function.
 - One or two flight legs are supported.

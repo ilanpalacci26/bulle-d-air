@@ -5,11 +5,14 @@ type Airport = {
   icao: string;
   name: string;
   city: string;
+  country: string;
+  timeZone?: string;
   latitude: number;
   longitude: number;
 };
 
 const timeout = () => AbortSignal.timeout(8500);
+const timeZoneCache = new Map<string, string>();
 
 function airport(raw: any): Airport | null {
   if (!raw || !Number.isFinite(Number(raw.latitude)) || !Number.isFinite(Number(raw.longitude))) return null;
@@ -18,6 +21,7 @@ function airport(raw: any): Airport | null {
     icao: raw.icao_code || "—",
     name: raw.name || "Aéroport",
     city: raw.municipality || raw.country_name || "",
+    country: raw.country_name || "",
     latitude: Number(raw.latitude),
     longitude: Number(raw.longitude),
   };
@@ -33,8 +37,45 @@ function haversine(a: Airport | { latitude: number; longitude: number }, b: Airp
   return r * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
 }
 
+function roundToFive(minutes: number) {
+  return Math.round(minutes / 5) * 5;
+}
+
+function addMinutes(iso: string, minutes: number) {
+  const time = Date.parse(iso);
+  return Number.isFinite(time) ? new Date(time + minutes * 60_000).toISOString() : null;
+}
+
+async function addTimeZone(place: Airport | null) {
+  if (!place) return;
+  const cacheKey = `${place.latitude.toFixed(2)},${place.longitude.toFixed(2)}`;
+  const cached = timeZoneCache.get(cacheKey);
+  if (cached) {
+    place.timeZone = cached;
+    return;
+  }
+  try {
+    const params = new URLSearchParams({
+      latitude: String(place.latitude),
+      longitude: String(place.longitude),
+      timezone: "auto",
+      forecast_days: "1",
+    });
+    const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`, { signal: timeout() });
+    if (!response.ok) return;
+    const zone = (await response.json())?.timezone;
+    if (typeof zone === "string" && zone.includes("/")) {
+      place.timeZone = zone;
+      timeZoneCache.set(cacheKey, zone);
+    }
+  } catch {
+    // The rest of the flight card stays available without a time zone lookup.
+  }
+}
+
 export async function resolveFlight(leg: FlightLeg) {
   const scheduledMs = Date.parse(leg.scheduledDeparture);
+  const requestTime = Date.now();
   let route: any = null;
   let routeError = false;
 
@@ -48,20 +89,36 @@ export async function resolveFlight(leg: FlightLeg) {
 
   const origin = airport(route?.origin);
   const destination = airport(route?.destination);
+  await Promise.all([addTimeZone(origin), addTimeZone(destination)]);
   const callsign = route?.callsign_icao || route?.callsign || leg.number;
   let aircraft: any = null;
 
-  try {
-    const response = await fetch(`https://api.adsb.lol/v2/callsign/${encodeURIComponent(callsign)}`, { signal: timeout() });
-    if (response.ok) {
-      const data = await response.json();
-      aircraft = data?.ac?.find((item: any) => Number.isFinite(item.lat) && Number.isFinite(item.lon)) ?? null;
+  const liveWindow = Number.isFinite(scheduledMs)
+    && scheduledMs > requestTime - 18 * 60 * 60 * 1000
+    && scheduledMs < requestTime + 36 * 60 * 60 * 1000;
+  if (liveWindow) {
+    try {
+      const response = await fetch(`https://api.adsb.lol/v2/callsign/${encodeURIComponent(callsign)}`, { signal: timeout() });
+      if (response.ok) {
+        const data = await response.json();
+        aircraft = data?.ac?.find((item: any) => Number.isFinite(item.lat) && Number.isFinite(item.lon)) ?? null;
+      }
+    } catch {
+      // Route information remains useful when live ADS-B is temporarily unavailable.
     }
-  } catch {
-    // Route information remains useful when live ADS-B is temporarily unavailable.
   }
 
   const now = Date.now();
+  const distanceKm = origin && destination ? Math.round(haversine(origin, destination)) : null;
+  // A route-aware block-time estimate: cruise time plus taxi, climb and descent.
+  const plannedDurationMinutes = distanceKm
+    ? Math.max(45, roundToFive((distanceKm / 800) * 60 + 35))
+    : null;
+  const plannedArrival = plannedDurationMinutes
+    ? addMinutes(leg.scheduledDeparture, plannedDurationMinutes)
+    : null;
+  let estimatedArrival = plannedArrival;
+  let remainingKm: number | null = null;
   let code = "scheduled";
   let label = "Prévu";
   let detail = "En attente du signal de l’avion";
@@ -87,7 +144,11 @@ export async function resolveFlight(leg: FlightLeg) {
       if (origin && destination) {
         const total = haversine(origin, destination);
         const remaining = haversine(position, destination);
+        remainingKm = Math.round(remaining);
         progress = total ? Math.max(0.03, Math.min(0.98, 1 - remaining / total)) : 0.5;
+        const measuredKmh = Number(aircraft.gs || 0) * 1.852;
+        const usefulKmh = measuredKmh >= 350 ? Math.min(measuredKmh, 1_050) : 780;
+        estimatedArrival = new Date(now + (remaining / usefulKmh) * 3_600_000 + 15 * 60_000).toISOString();
       } else progress = 0.5;
     }
   } else if (Number.isFinite(scheduledMs) && now > scheduledMs + 15 * 60 * 1000 && now < scheduledMs + 8 * 60 * 60 * 1000) {
@@ -107,6 +168,12 @@ export async function resolveFlight(leg: FlightLeg) {
     airline: route?.airline?.name || null,
     origin,
     destination,
+    distanceKm,
+    remainingKm,
+    plannedDurationMinutes,
+    plannedArrival,
+    estimatedArrival,
+    timingSource: aircraft && remainingKm !== null ? "live-estimate" : "route-estimate",
     routeAvailable: Boolean(origin && destination),
     routeError,
     status: { code, label, detail },
@@ -117,6 +184,8 @@ export async function resolveFlight(leg: FlightLeg) {
       heading: Number(aircraft.track || 0),
       altitude: aircraft.alt_baro,
       speed: aircraft.gs,
+      registration: aircraft.r || null,
+      aircraftType: aircraft.t || aircraft.desc || null,
       seenSecondsAgo: Number(aircraft.seen || aircraft.seen_pos || 0),
     } : null,
     updatedAt: new Date().toISOString(),
