@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-03T10:15:00+02:00",
+  "title": "Design System: Bulle d’Air",
+  "extensions": {
+    "colorMeta": {
+      "violet": { "role": "primary", "displayName": "Violet de piste", "canonical": "#7957ff", "tonalRamp": ["#21134f", "#3e267e", "#5b3dac", "#7957ff", "#9b83ff", "#bbaaff", "#ddd4ff", "#f6f1ff"] },
+      "paper": { "role": "neutral", "displayName": "Papier cabine", "canonical": "#fffdf7", "tonalRamp": ["#24202d", "#514b58", "#7c7582", "#aaa3ac", "#d4ced5", "#eee9ec", "#f8f4f2", "#fffdf7"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Signaletique", "purpose": "Routes et promesses principales." },
+      "body": { "displayName": "Cabine", "purpose": "Formulaires, explications et statuts." }
+    },
+    "shadows": [
+      { "name": "lift-violet", "value": "0 8px 18px rgba(121,87,255,.24)", "purpose": "Marque et actions principales." },
+      { "name": "map-float", "value": "0 14px 30px rgba(41,34,55,.18)", "purpose": "Panneaux flottant sur la carte." }
+    ],
+    "motion": [
+      { "name": "state-fast", "value": "180ms ease", "purpose": "Focus, survol et selection." }
+    ],
+    "breakpoints": [
+      { "name": "stack", "value": "1000px" },
+      { "name": "mobile", "value": "650px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Action unique de creation.",
+      "html": "<button class=\"ds-primary\">Creer le lien magique</button>",
+      "css": ".ds-primary{border:0;border-radius:12px;padding:14px 20px;background:#7957ff;color:#fff;font:750 16px Bricolage,Segoe UI,sans-serif;box-shadow:0 8px 18px rgba(121,87,255,.24);transition:transform .18s}.ds-primary:hover{transform:translateY(-2px)}.ds-primary:focus-visible{outline:3px solid #7957ff;outline-offset:3px}"
+    },
+    {
+      "name": "Flight Chip",
+      "kind": "chip",
+      "description": "Numero de vol court et selectionnable.",
+      "html": "<span class=\"ds-chip\">AF123 · escale</span>",
+      "css": ".ds-chip{display:inline-block;border-radius:999px;padding:6px 10px;background:#ffd84d;color:#24202d;font:750 12px Bricolage,Segoe UI,sans-serif}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Champ calme avec focus net.",
+      "html": "<input class=\"ds-input\" value=\"AF123\" aria-label=\"Numero de vol\">",
+      "css": ".ds-input{border:1.5px solid #ddd7e5;border-radius:12px;background:#fff;color:#24202d;padding:12px 13px;font:16px Bricolage,Segoe UI,sans-serif}.ds-input:hover{border-color:#aaa1b7}.ds-input:focus-visible{outline:0;border-color:#7957ff;box-shadow:0 0 0 4px rgba(121,87,255,.14)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Le distributeur de capsules aeroportuaire",
+    "overview": "Bulle d’Air reprend la precision d’un tableau de trafic aerien et lui donne le plaisir tactile d’un jouet pop.",
+    "keyCharacteristics": ["Typographie massive et compacte pour la route.", "Papier chaud, encre aubergine et accents francs.", "Profondeur douce, angles genereux et petites formes-jouets.", "Donnees incertaines toujours expliquees en toutes lettres."],
+    "rules": [
+      { "name": "The Confetti, Not Wallpaper Rule", "body": "Les accents s’emploient en petites zones nettes; les grandes surfaces restent papier ou lavande.", "section": "colors" },
+      { "name": "The Route Is the Hero Rule", "body": "Une route ne concurrence jamais un autre titre de meme poids dans le premier ecran.", "section": "typography" },
+      { "name": "The One Lift Rule", "body": "Un element ne cumule jamais contour lourd, ombre dure et halo.", "section": "elevation" }
+    ],
+    "dos": ["Do laisser respirer la route et le statut avant les controles.", "Do montrer chaque voyageur comme une bulle distincte.", "Do nommer explicitement les estimations et absences de signal."],
+    "donts": ["Don't utiliser des illustrations ou logos officiels des univers cites.", "Don't remplacer la hierarchie par une pluie de couleurs.", "Don't cacher une information de vol importante dans une animation."]
+  }
+}
