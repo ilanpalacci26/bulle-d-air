@@ -1037,7 +1037,7 @@ legend {
 }
 .air-crew > span {
   position: absolute;
-  left: calc((var(--i) - 2.5) * 27px - 23px);
+  left: calc((var(--i) - (var(--n, 6) - 1) / 2) * 27px - 23px);
   top: 36px;
   display: grid;
   place-items: center;

@@ -468,7 +468,7 @@ function setPlaneMarker(position, crew) {
       .slice(0, 6)
       .map(
         (person, index) =>
-          `<span style="--i:${index};--c:${person.color}" title="${escapeHtml(person.name)}">${avatarHtml(person, person.name)}</span>`,
+          `<span style="--i:${index};--n:${Math.min(crew.length, 6)};--c:${person.color}" title="${escapeHtml(person.name)}">${avatarHtml(person, person.name)}</span>`,
       )
       .join("")}</div><div class="map-plane">${icon("plane", 42)}</div></div>`;
     planeMarker = new maplibregl.Marker({ element, anchor: "center" })
