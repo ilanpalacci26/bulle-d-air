@@ -38,6 +38,21 @@ npm run test:e2e
 
 Le test de bout en bout suppose que `netlify dev` fonctionne sur le port 8888.
 
+## Déploiement
+
+Le site est en production sur **https://bulle-d-air.netlify.app**.
+
+- Netlify est connecté au repo GitHub `ilanpalacci26/bulle-d-air` : **chaque push sur `main` déclenche automatiquement un build et un déploiement** (commande `npm run build`, dossier publié `dist`, fonctions dans `netlify/functions`).
+- Plus besoin de `netlify deploy` manuel : pousser sur `main` suffit.
+- Tableau de bord : https://app.netlify.com/projects/bulle-d-air
+
+### État d'avancement (15 septembre 2026)
+
+- MVP complet et déployé : création de lien, carte live MapLibre, télémétrie ADS-B, avatars, partage de position, expiration 48 h.
+- Trois fonctions Netlify en production : `trips`, `presences`, `cleanup` (cron horaire).
+- Derniers correctifs : badge Netlify ne recouvre plus les actions de la carte ; timing de vol et télémétrie détaillés.
+- Le déploiement continu via GitHub a été mis en place le 15 septembre 2026 (clé de déploiement + webhook `api.netlify.com/hooks/github`).
+
 ## Données et confidentialité
 
 Les photos sont compressées dans le navigateur avant l’envoi. Un proche déclenche lui-même la permission de localisation et peut arrêter le partage depuis la carte. Les présences expirent avec le voyage. Les mots de passe et clés de présence sont stockés sous forme de condensats SHA-256 et ne sont jamais renvoyés par l’API.
