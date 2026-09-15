@@ -31,6 +31,9 @@ body {
   min-width: 320px;
   background: var(--cream);
 }
+#nl-badge-frame {
+  display: none !important;
+}
 button,
 input {
   font: inherit;
