@@ -347,6 +347,15 @@ function initMap() {
     new maplibregl.NavigationControl({ showCompass: false }),
     "bottom-right",
   );
+  map.on("zoom", applyMarkerScale);
+  applyMarkerScale();
+}
+
+function applyMarkerScale() {
+  const scale = Math.min(1.15, Math.max(0.4, 0.36 + map.getZoom() * 0.115));
+  map
+    .getContainer()
+    .style.setProperty("--marker-scale", scale.toFixed(3));
 }
 
 async function refreshTrip(first) {
@@ -505,7 +514,7 @@ function syncPresenceMarkers(presences) {
     if (!marker) {
       const element = document.createElement("div");
       element.className = `friend-marker ${person.isLive ? "is-live" : ""}`;
-      element.innerHTML = `<div class="friend-message">${escapeHtml(person.message || "Je suis là !")}</div><div class="friend-pin" style="--c:${person.avatar.color}">${avatarHtml(person.avatar, person.name)}</div><strong>${escapeHtml(person.name)}</strong>`;
+      element.innerHTML = `<div class="friend-scale"><div class="friend-message">${escapeHtml(person.message || "Je suis là !")}</div><div class="friend-pin" style="--c:${person.avatar.color}">${avatarHtml(person.avatar, person.name)}</div><strong>${escapeHtml(person.name)}</strong></div>`;
       marker = new maplibregl.Marker({ element, anchor: "bottom" })
         .setLngLat([person.longitude, person.latitude])
         .addTo(map);

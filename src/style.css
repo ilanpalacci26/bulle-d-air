@@ -994,6 +994,8 @@ legend {
   position: absolute;
   inset: 0;
   animation: cruise 2.6s ease-in-out infinite;
+  scale: var(--marker-scale, 1);
+  transform-origin: 51% 75%;
 }
 @keyframes cruise {
   50% {
@@ -1028,15 +1030,15 @@ legend {
   content: "";
   position: absolute;
   left: -1px;
-  top: 46px;
+  top: 76px;
   width: 2px;
-  height: 57px;
+  height: 8px;
   background: var(--ink);
 }
 .air-crew > span {
   position: absolute;
-  left: calc((var(--i) - 2.5) * 31px - 23px);
-  top: 7px;
+  left: calc((var(--i) - 2.5) * 27px - 23px);
+  top: 36px;
   display: grid;
   place-items: center;
   width: 46px;
@@ -1049,11 +1051,11 @@ legend {
 }
 .air-crew > span:nth-child(2),
 .air-crew > span:nth-child(5) {
-  top: 2px;
+  top: 31px;
 }
 .air-crew > span:nth-child(3),
 .air-crew > span:nth-child(4) {
-  top: -3px;
+  top: 26px;
 }
 .air-crew img {
   width: 100%;
@@ -1063,7 +1065,11 @@ legend {
 .friend-marker {
   min-width: 130px;
   text-align: center;
+}
+.friend-scale {
   filter: drop-shadow(2px 3px 0 rgba(24, 33, 52, 0.22));
+  scale: var(--marker-scale, 1);
+  transform-origin: 50% 100%;
 }
 .friend-message {
   display: inline-block;
