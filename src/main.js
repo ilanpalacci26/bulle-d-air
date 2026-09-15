@@ -91,9 +91,22 @@ function previewPlane() {
     )}</div><div class="preview-plane">${icon("plane", 54)}</div></div>`;
 }
 
+function randomFrom(alphabet, size) {
+  const bytes = new Uint8Array(size);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
+}
+
+const suggestSlug = () =>
+  randomFrom("abcdefghijkmnpqrstuvwxyz23456789", 10);
+const suggestPassword = () =>
+  randomFrom("ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789", 14);
+
 function renderCreate() {
   clearRuntime();
-  app.innerHTML = `<main class="create-page"><nav class="landing-nav"><a class="brand" href="/">Bulle d’Air <span>${icon("plane", 18)}</span></a><span>Le vol, mais en plus vivant.</span></nav><section class="create-hero"><div class="hero-copy"><h1>Suivez-les<br>dans le ciel.</h1><p>Un lien simple, une carte vivante et toute la bande juste au-dessus de l’avion.</p><div class="hero-stamps"><span>Position live</span><span>Photos & emojis</span><span>48 h puis pouf</span></div></div>${previewPlane()}</section><section class="maker-wrap"><form id="create-form" class="maker"><div class="maker-title"><h2>Créer le voyage</h2><span>En 1 minute</span></div><label class="full-field"><span>Votre nom</span><input id="username" placeholder="Camille" maxlength="30" minlength="2" required autocomplete="username"></label><fieldset><legend>Le vol</legend><div id="flights">${flightFields(1)}</div><button id="add-leg" class="add-button" type="button">${icon("plus")} Ajouter une escale</button></fieldset><fieldset><legend>Qui est dans l’avion ?</legend><div id="passengers"></div><button id="add-passenger" class="add-button" type="button">${icon("plus")} Ajouter quelqu’un</button></fieldset><p id="form-error" class="form-error" role="alert"></p><button class="cta" type="submit"><span>Créer le lien</span>${icon("arrow")}</button><p class="privacy-note">Le lien et ses positions disparaissent automatiquement après 48 h.</p></form></section></main>`;
+  const slug = suggestSlug(),
+    password = suggestPassword();
+  app.innerHTML = `<main class="create-page"><nav class="landing-nav"><a class="brand" href="/">Bulle d’Air <span>${icon("plane", 18)}</span></a><span>Le vol, mais en plus vivant.</span></nav><section class="create-hero"><div class="hero-copy"><h1>Suivez-les<br>dans le ciel.</h1><p>Un lien simple, une carte vivante et toute la bande juste au-dessus de l’avion.</p><div class="hero-stamps"><span>Position live</span><span>Photos & emojis</span><span>48 h puis pouf</span></div></div>${previewPlane()}</section><section class="maker-wrap"><form id="create-form" class="maker"><div class="maker-title"><h2>Créer le voyage</h2><span>En 1 minute</span></div><label class="full-field"><span>Votre nom</span><input id="username" placeholder="Camille" maxlength="30" minlength="2" required autocomplete="username"></label><fieldset><legend>Le vol</legend><div id="flights">${flightFields(1)}</div><button id="add-leg" class="add-button" type="button">${icon("plus")} Ajouter une escale</button></fieldset><fieldset><legend>Qui est dans l’avion ?</legend><div id="passengers"></div><button id="add-passenger" class="add-button" type="button">${icon("plus")} Ajouter quelqu’un</button></fieldset><fieldset><legend>Lien & mot de passe</legend><label class="full-field"><span>Adresse du lien <small>générée, modifiable</small></span><div class="slug-field"><span class="slug-prefix">${location.host}/?trip=</span><input id="custom-id" value="${slug}" maxlength="24" minlength="4" pattern="[A-Za-z0-9_-]{4,24}" spellcheck="false" autocomplete="off" required></div></label><label class="full-field"><span>Mot de passe de gestion <small>généré, modifiable</small></span><input id="custom-password" value="${password}" maxlength="80" minlength="6" spellcheck="false" autocomplete="new-password" required></label><p class="privacy-note">Les deux sont créés automatiquement : changez-les si vous préférez les vôtres.</p></fieldset><p id="form-error" class="form-error" role="alert"></p><button class="cta" type="submit"><span>Créer le lien</span>${icon("arrow")}</button><p class="privacy-note">Le lien et ses positions disparaissent automatiquement après 48 h.</p></form></section></main>`;
   bindCreate();
 }
 
@@ -245,6 +258,8 @@ async function createTrip(event) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         username: document.querySelector("#username").value,
+        customId: document.querySelector("#custom-id").value.trim(),
+        password: document.querySelector("#custom-password").value,
         flights,
         passengers,
       }),
@@ -262,7 +277,7 @@ async function createTrip(event) {
 
 function renderSuccess(data) {
   const url = `${location.origin}${location.pathname}?trip=${data.trip.id}`;
-  app.innerHTML = `<main class="success-page"><section class="success-ticket"><div class="success-plane">${icon("plane", 64)}</div><p class="ticket-label">Prêt au décollage</p><h1>Votre carte est en ligne.</h1><label>Lien à partager<div class="copy-field"><input id="share-link" value="${url}" readonly><button data-copy="share-link" type="button">${icon("copy")} Copier</button></div></label><label>Votre mot de passe<div class="copy-field"><code id="generated-password">${data.password}</code><button data-copy="generated-password" type="button">${icon("copy")} Copier</button></div></label><p class="save-warning">Gardez ce mot de passe : il n’est affiché qu’une fois.</p><a class="cta" href="${url}"><span>Voir la carte</span>${icon("arrow")}</a></section></main>`;
+  app.innerHTML = `<main class="success-page"><section class="success-ticket"><div class="success-plane">${icon("plane", 64)}</div><p class="ticket-label">Prêt au décollage</p><h1>Votre carte est en ligne.</h1><label>Lien à partager<div class="copy-field"><input id="share-link" value="${url}" readonly><button data-copy="share-link" type="button">${icon("copy")} Copier</button></div></label><label>Votre mot de passe<div class="copy-field"><code id="generated-password">${escapeHtml(data.password)}</code><button data-copy="generated-password" type="button">${icon("copy")} Copier</button></div></label><p class="save-warning">Gardez ce mot de passe : il n’est affiché qu’une fois.</p><a class="cta" href="${url}"><span>Voir la carte</span>${icon("arrow")}</a></section></main>`;
   document.querySelectorAll("[data-copy]").forEach((button) =>
     button.addEventListener("click", async () => {
       const target = document.querySelector(`#${button.dataset.copy}`);

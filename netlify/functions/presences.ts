@@ -5,7 +5,7 @@ import { hashPresenceSecret, isExpired, presenceKey, presencePrefix, publicPrese
 const colors = new Set(["#FF5D5D", "#FFD84D", "#66D9B8", "#70A7FF", "#A97AFF", "#FF8DC7", "#FF9B55", "#1E2430"]);
 
 function validId(value: string) {
-  return /^[A-Za-z0-9_-]{8,24}$/.test(value);
+  return /^[A-Za-z0-9_-]{4,24}$/.test(value);
 }
 
 function validPosition(body: any) {

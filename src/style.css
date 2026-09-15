@@ -352,6 +352,30 @@ legend {
   font-weight: 800;
   font-size: 1.15rem;
 }
+.slug-field {
+  display: flex;
+  align-items: stretch;
+}
+.slug-prefix {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border: 2px solid var(--ink);
+  border-right: 0;
+  background: #f4f0e6;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.slug-field input {
+  min-width: 0;
+}
+@media (max-width: 560px) {
+  .slug-prefix {
+    font-size: 0.72rem;
+    padding: 0 7px;
+  }
+}
 .flight-row {
   display: grid;
   grid-template-columns: 1.2fr 1fr 0.9fr auto;

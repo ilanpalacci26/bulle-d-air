@@ -34,7 +34,7 @@ function validatePassengers(value: unknown): Avatar[] | null {
 }
 
 async function getTrip(id: string) {
-  if (!/^[A-Za-z0-9_-]{8,24}$/.test(id)) return null;
+  if (!/^[A-Za-z0-9_-]{4,24}$/.test(id)) return null;
   return tripStore().get(tripKey(id), { type: "json" }) as Promise<Trip | null>;
 }
 
@@ -48,8 +48,14 @@ async function create(req: Request) {
   if (!flights) return json({ error: "Ajoutez un ou deux vols avec une date et une heure valides." }, 400);
   if (!passengers) return json({ error: "Ajoutez entre 1 et 8 voyageurs avec un avatar valide." }, 400);
 
-  const id = randomId(9);
-  const password = randomPassword();
+  const requestedId = cleanText(body?.customId, 24);
+  const requestedPassword = cleanText(body?.password, 80);
+  if (requestedId && !/^[A-Za-z0-9_-]{4,24}$/.test(requestedId)) return json({ error: "L’adresse du lien doit faire 4 à 24 caractères (lettres, chiffres, - ou _)." }, 400);
+  if (requestedPassword && requestedPassword.length < 6) return json({ error: "Le mot de passe doit contenir au moins 6 caractères." }, 400);
+
+  const id = requestedId || randomId(9);
+  if (requestedId && (await tripStore().get(tripKey(id), { type: "json" }))) return json({ error: "Cette adresse de lien est déjà prise, choisissez-en une autre." }, 409);
+  const password = requestedPassword || randomPassword();
   const createdAt = new Date();
   const trip: Trip = {
     id,
@@ -88,6 +94,11 @@ async function update(req: Request, id: string) {
   const password = cleanText(body?.password, 80);
   const candidate = await hashPassword(username, password, id);
   if (username.toLowerCase() !== trip.ownerUsername.toLowerCase() || candidate !== trip.passwordHash) return json({ error: "Identifiants incorrects." }, 401);
+  const newPassword = cleanText(body?.newPassword, 80);
+  if (newPassword) {
+    if (newPassword.length < 6) return json({ error: "Le nouveau mot de passe doit contenir au moins 6 caractères." }, 400);
+    trip.passwordHash = await hashPassword(trip.ownerUsername, newPassword, id);
+  }
   await tripStore().setJSON(tripKey(id), trip, { metadata: { expiresAt: trip.expiresAt } });
   return json({ trip: publicTrip(trip) });
 }
