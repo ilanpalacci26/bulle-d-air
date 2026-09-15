@@ -3,10 +3,9 @@ import { tripStore } from "./_shared/trips";
 
 export default async () => {
   const store = tripStore();
-  let cursor: string | undefined;
   let removed = 0;
-  do {
-    const page = await store.list({ prefix: "trip/", cursor });
+  for (const prefix of ["trip/", "presence/"]) {
+    const page = await store.list({ prefix });
     for (const blob of page.blobs) {
       const metadata = await store.getMetadata(blob.key);
       if (metadata?.metadata?.expiresAt && Date.parse(String(metadata.metadata.expiresAt)) <= Date.now()) {
@@ -14,9 +13,8 @@ export default async () => {
         removed += 1;
       }
     }
-    cursor = page.next_cursor;
-  } while (cursor);
-  console.log(`Expired trips removed: ${removed}`);
+  }
+  console.log(`Expired records removed: ${removed}`);
 };
 
 export const config: Config = { schedule: "@hourly" };

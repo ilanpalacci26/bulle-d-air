@@ -1,9 +1,8 @@
 import type { Config, Context } from "@netlify/functions";
 import { cleanText, json, normalizeFlightNumber } from "./_shared/http";
-import { hashPassword, isExpired, publicTrip, randomId, randomPassword, tripKey, tripStore, type Avatar, type FlightLeg, type Trip } from "./_shared/trips";
+import { hashPassword, isExpired, presencePrefix, publicPresence, publicTrip, randomId, randomPassword, tripKey, tripStore, type Avatar, type FlightLeg, type Presence, type Trip } from "./_shared/trips";
 import { resolveFlights } from "./_shared/flight-data";
 
-const themes = new Set(["minecraft", "mario", "pokemon", "lego"]);
 const colors = new Set(["#FF5D5D", "#FFD84D", "#66D9B8", "#70A7FF", "#A97AFF", "#FF8DC7", "#FF9B55", "#1E2430"]);
 
 function validateFlights(value: unknown): FlightLeg[] | null {
@@ -45,7 +44,6 @@ async function create(req: Request) {
   const username = cleanText(body?.username, 30);
   const flights = validateFlights(body?.flights);
   const passengers = validatePassengers(body?.passengers);
-  const theme = themes.has(body?.theme) ? body.theme : "minecraft";
   if (username.length < 2) return json({ error: "Le nom d’utilisateur doit contenir au moins 2 caractères." }, 400);
   if (!flights) return json({ error: "Ajoutez un ou deux vols avec une date et une heure valides." }, 400);
   if (!passengers) return json({ error: "Ajoutez entre 1 et 8 voyageurs avec un avatar valide." }, 400);
@@ -57,7 +55,7 @@ async function create(req: Request) {
     id,
     ownerUsername: username,
     passwordHash: await hashPassword(username, password, id),
-    theme,
+    theme: "atlas-pop",
     flights,
     passengers,
     createdAt: createdAt.toISOString(),
@@ -75,7 +73,10 @@ async function read(id: string) {
     return json({ error: "Ce lien a expiré après 48 heures." }, 410);
   }
   const tracking = await resolveFlights(trip.flights);
-  return json({ trip: publicTrip(trip), tracking }, 200, { "cache-control": "public, max-age=10, stale-while-revalidate=15" });
+  const listed = await tripStore().list({ prefix: presencePrefix(id) });
+  const loaded = await Promise.all(listed.blobs.slice(0, 30).map((blob) => tripStore().get(blob.key, { type: "json" }) as Promise<Presence | null>));
+  const presences = loaded.filter((item): item is Presence => Boolean(item) && Date.parse(item!.expiresAt) > Date.now()).map(publicPresence);
+  return json({ trip: publicTrip(trip), tracking, presences }, 200);
 }
 
 async function update(req: Request, id: string) {
@@ -87,7 +88,6 @@ async function update(req: Request, id: string) {
   const password = cleanText(body?.password, 80);
   const candidate = await hashPassword(username, password, id);
   if (username.toLowerCase() !== trip.ownerUsername.toLowerCase() || candidate !== trip.passwordHash) return json({ error: "Identifiants incorrects." }, 401);
-  if (body.theme && themes.has(body.theme)) trip.theme = body.theme;
   await tripStore().setJSON(tripKey(id), trip, { metadata: { expiresAt: trip.expiresAt } });
   return json({ trip: publicTrip(trip) });
 }

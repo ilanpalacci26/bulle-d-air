@@ -3,53 +3,14 @@ import maplibregl from "maplibre-gl";
 import "./style.css";
 
 const app = document.querySelector("#app");
-const themes = [
-  {
-    id: "minecraft",
-    name: "Minecraft",
-    note: "Blocs & prairies",
-    colors: ["#6ecb63", "#7b5c46", "#b9e769"],
-  },
-  {
-    id: "mario",
-    name: "Super Mario",
-    note: "Tuyaux & nuages",
-    colors: ["#ff5757", "#4b9fff", "#ffe36e"],
-  },
-  {
-    id: "pokemon",
-    name: "Pokémon",
-    note: "Énergie & badges",
-    colors: ["#ffd84d", "#3557a3", "#ff6b6b"],
-  },
-  {
-    id: "lego",
-    name: "LEGO",
-    note: "Briques & couleurs",
-    colors: ["#ff4545", "#ffd52f", "#2f7cff"],
-  },
-];
-const emojiChoices = [
-  "😎",
-  "🥳",
-  "🦊",
-  "🐼",
-  "🐸",
-  "🦄",
-  "🤠",
-  "🚀",
-  "🌈",
-  "🧳",
-];
-const palette = [
-  "#FF5D5D",
-  "#FFD84D",
-  "#66D9B8",
-  "#70A7FF",
-  "#A97AFF",
-  "#FF8DC7",
-  "#FF9B55",
-  "#1E2430",
+const emojis = ["😎", "🥳", "🦊", "🐼", "🐸", "🦄", "🤠", "🛸", "🌈", "🧳"];
+const colors = [
+  "#ff5f57",
+  "#ffd84d",
+  "#61d8b3",
+  "#70a7ff",
+  "#a97aff",
+  "#ff8dc7",
 ];
 let passengers = [
   {
@@ -57,111 +18,104 @@ let passengers = [
     name: "Moi",
     kind: "emoji",
     value: "😎",
-    color: palette[0],
+    color: colors[0],
   },
 ];
-let map;
-let pollTimer;
+let map,
+  pollTimer,
+  moveTimer,
+  locationWatch,
+  currentTrip,
+  currentTracking,
+  planeMarker,
+  sheetTrigger,
+  presenceSending = false;
+const presenceMarkers = new Map();
 
-const icon = (name, size = 22) => {
+const icon = (name, size = 20) => {
   const paths = {
     plane:
-      '<path d="M22 16.5 13.5 13V7.2c0-1.5-.7-4.2-1.5-4.2s-1.5 2.7-1.5 4.2V13L2 16.5v2l8.5-1.5v3.6L8 22v1l4-1 4 1v-1l-2.5-1.4V17l8.5 1.5Z"/>',
-    link: '<path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"/>',
-    bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',
+      '<path d="M21.5 16.2 13.5 13V7.4c0-1.6-.7-4.4-1.5-4.4s-1.5 2.8-1.5 4.4V13l-8 3.2v2l8-1.3v3.5L8 21.8v1l4-1 4 1v-1l-2.5-1.4v-3.5l8 1.3Z"/>',
+    pin: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
-    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-    map: '<path d="m3 6 5-2 8 3 5-2v13l-5 2-8-3-5 2Z"/><path d="M8 4v13M16 7v13"/>',
-    lock: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
-    check: '<path d="m5 12 4 4L19 6"/>',
-    alert: '<path d="M12 3 2.5 20h19Z"/><path d="M12 9v4M12 17h.01"/>',
-    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
-    copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
-    spark:
-      '<path d="m12 2 1.5 6.5L20 10l-6.5 1.5L12 18l-1.5-6.5L4 10l6.5-1.5Z"/><path d="m19 17 .7 2.3L22 20l-2.3.7L19 23l-.7-2.3L16 20l2.3-.7Z"/>',
-    settings:
-      '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/>',
     close: '<path d="m6 6 12 12M18 6 6 18"/>',
+    copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+    bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
+    arrow: '<path d="m9 18 6-6-6-6"/>',
+    locate:
+      '<circle cx="12" cy="12" r="7"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+    stop: '<rect x="6" y="6" width="12" height="12" rx="2"/>',
   };
   return `<svg class="icon" width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true">${paths[name] || ""}</svg>`;
 };
 
-function shell(content, theme = "minecraft") {
-  document.body.dataset.theme = theme;
-  app.innerHTML = `<header class="topbar">
-    <a class="brand" href="/" aria-label="Accueil Bulle d’Air"><span class="brand-mark">${icon("plane", 26)}</span><strong>Bulle d’Air</strong></a>
-    <div class="top-tag">Le ciel est plus sympa à plusieurs</div>
-  </header>${content}`;
+function escapeHtml(value = "") {
+  const node = document.createElement("div");
+  node.textContent = String(value);
+  return node.innerHTML;
 }
-
-function renderCreate() {
-  shell(`<main class="create-layout">
-    <section class="create-copy">
-      <h1>Votre vol.<br><span>Leur petite aventure.</span></h1>
-      <p class="lead">Créez un lien de suivi vivant pour celles et ceux qui vous attendent. Position, retard estimé et bande de voyageurs inclus.</p>
-      <div class="sky-demo" aria-hidden="true">
-        <div class="demo-route"></div><div class="demo-plane">${icon("plane", 42)}</div>
-        ${["😎", "🐼", "🦄", "🚀"].map((face, i) => `<span style="--i:${i}">${face}</span>`).join("")}
-        <b>CDG</b><b>JFK</b>
-      </div>
-      <ul class="promise-list">
-        <li>${icon("map")} Position ADS-B en direct quand disponible</li>
-        <li>${icon("bell")} Notification de retard sur demande</li>
-        <li>${icon("clock")} Disparaît automatiquement après 48 h</li>
-      </ul>
-    </section>
-
-    <section class="builder" aria-labelledby="builder-title">
-      <div class="builder-head"><h2 id="builder-title">Préparer le voyage</h2><span>2 min</span></div>
-      <form id="create-form">
-        <div class="field"><label for="username">Votre nom d’utilisateur</label><input id="username" name="username" required minlength="2" maxlength="30" placeholder="ex. Camille" autocomplete="username"></div>
-
-        <fieldset><legend>Le vol</legend><div id="flights">
-          ${flightFields(1)}
-        </div><button class="text-button" type="button" id="add-leg">${icon("plus", 18)} Ajouter une escale</button></fieldset>
-
-        <fieldset><legend>L’univers de la carte</legend><div class="theme-grid">
-          ${themes.map((theme, i) => `<label class="theme-option"><input type="radio" name="theme" value="${theme.id}" ${i === 0 ? "checked" : ""}><span class="theme-preview ${theme.id}">${theme.colors.map((c) => `<i style="background:${c}"></i>`).join("")}</span><strong>${theme.name}</strong><small>${theme.note}</small></label>`).join("")}
-        </div><p class="brand-note">Univers visuels non officiels, sans affiliation aux marques citées.</p></fieldset>
-
-        <fieldset><legend>La bande à bord</legend><div id="passenger-list"></div><button class="text-button" type="button" id="add-passenger">${icon("plus", 18)} Ajouter un voyageur</button></fieldset>
-
-        <div class="form-error" id="form-error" role="alert"></div>
-        <button class="primary-action" type="submit"><span>${icon("spark")} Créer le lien magique</span><small>Actif pendant 48 heures</small></button>
-      </form>
-    </section>
-  </main>`);
-  bindCreate();
+function initials(name = "") {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase() || "?"
+  );
+}
+function avatarHtml(avatar, alt = "") {
+  return avatar?.kind === "photo"
+    ? `<img src="${avatar.value}" alt="${escapeHtml(alt)}">`
+    : `<span aria-hidden="true">${escapeHtml(avatar?.value || initials(alt))}</span>`;
 }
 
 function flightFields(index) {
-  const now = new Date(Date.now() + (index - 1) * 5 * 60 * 60 * 1000);
-  const date = now.toISOString().slice(0, 10);
-  const time = now.toTimeString().slice(0, 5);
-  return `<div class="flight-row" data-leg="${index}"><div class="flight-number"><label for="flight-${index}">N° de vol ${index === 2 ? "après l’escale" : ""}</label><input id="flight-${index}" name="flight-${index}" placeholder="AF123" required maxlength="10" autocapitalize="characters"></div><div><label for="date-${index}">Date</label><input id="date-${index}" name="date-${index}" type="date" value="${date}" required></div><div><label for="time-${index}">Départ prévu</label><input id="time-${index}" name="time-${index}" type="time" value="${time}" required></div>${index === 2 ? `<button class="remove-leg" type="button" aria-label="Supprimer l’escale">${icon("close", 18)}</button>` : ""}</div>`;
+  const when = new Date(Date.now() + (index - 1) * 4 * 60 * 60 * 1000);
+  const local = new Date(
+    when.getTime() - when.getTimezoneOffset() * 60_000,
+  ).toISOString();
+  return `<div class="flight-row" data-leg="${index}"><label><span>Numéro de vol</span><input id="flight-${index}" placeholder="AF123" maxlength="10" required autocapitalize="characters"></label><label><span>Date</span><input id="date-${index}" type="date" value="${local.slice(0, 10)}" required></label><label><span>Heure prévue</span><input id="time-${index}" type="time" value="${local.slice(11, 16)}" required></label>${index === 2 ? `<button class="icon-button remove-leg" type="button" aria-label="Supprimer l’escale">${icon("close")}</button>` : ""}</div>`;
 }
 
-function passengerRow(passenger, index) {
-  const avatar =
-    passenger.kind === "photo"
-      ? `<img src="${passenger.value}" alt="">`
-      : passenger.value;
-  return `<div class="passenger-row" data-id="${passenger.id}"><button class="avatar-button" type="button" style="--avatar:${passenger.color}" aria-label="Personnaliser l’avatar de ${passenger.name}">${avatar}</button><input class="passenger-name" value="${escapeHtml(passenger.name)}" aria-label="Nom du voyageur ${index + 1}" maxlength="30"><button class="remove-passenger" type="button" aria-label="Supprimer ${escapeHtml(passenger.name)}">${icon("close", 18)}</button><div class="avatar-picker" hidden><div class="emoji-grid">${emojiChoices.map((e) => `<button type="button" data-emoji="${e}">${e}</button>`).join("")}</div><label class="photo-pick">Ajouter une photo<input type="file" accept="image/png,image/jpeg,image/webp"></label><div class="color-row">${palette.map((c) => `<button type="button" data-color="${c}" style="background:${c}" aria-label="Couleur ${c}"></button>`).join("")}</div><button type="button" data-initials>Utiliser les initiales</button></div></div>`;
+function previewPlane() {
+  return `<div class="preview-flight" aria-hidden="true"><div class="preview-orbit"></div><div class="preview-crew">${passengers
+    .slice(0, 5)
+    .map(
+      (person, index) =>
+        `<i style="--i:${index};--c:${person.color}">${avatarHtml(person)}</i>`,
+    )
+    .join(
+      "",
+    )}</div><div class="preview-plane">${icon("plane", 54)}</div></div>`;
 }
 
-function renderPassengers() {
-  document.querySelector("#passenger-list").innerHTML = passengers
+function renderCreate() {
+  clearRuntime();
+  app.innerHTML = `<main class="create-page"><nav class="landing-nav"><a class="brand" href="/">Bulle d’Air <span>${icon("plane", 18)}</span></a><span>Le vol, mais en plus vivant.</span></nav><section class="create-hero"><div class="hero-copy"><h1>Suivez-les<br>dans le ciel.</h1><p>Un lien simple, une carte vivante et toute la bande juste au-dessus de l’avion.</p><div class="hero-stamps"><span>Position live</span><span>Photos & emojis</span><span>48 h puis pouf</span></div></div>${previewPlane()}</section><section class="maker-wrap"><form id="create-form" class="maker"><div class="maker-title"><h2>Créer le voyage</h2><span>En 1 minute</span></div><label class="full-field"><span>Votre nom</span><input id="username" placeholder="Camille" maxlength="30" minlength="2" required autocomplete="username"></label><fieldset><legend>Le vol</legend><div id="flights">${flightFields(1)}</div><button id="add-leg" class="add-button" type="button">${icon("plus")} Ajouter une escale</button></fieldset><fieldset><legend>Qui est dans l’avion ?</legend><div id="passengers"></div><button id="add-passenger" class="add-button" type="button">${icon("plus")} Ajouter quelqu’un</button></fieldset><p id="form-error" class="form-error" role="alert"></p><button class="cta" type="submit"><span>Créer le lien</span>${icon("arrow")}</button><p class="privacy-note">Le lien et ses positions disparaissent automatiquement après 48 h.</p></form></section></main>`;
+  bindCreate();
+}
+
+function passengerRow(person, index) {
+  return `<div class="person-row" data-id="${person.id}"><button class="person-avatar" type="button" style="--c:${person.color}" aria-label="Changer l’avatar de ${escapeHtml(person.name)}">${avatarHtml(person)}</button><label><span class="sr-only">Nom ${index + 1}</span><input class="person-name" value="${escapeHtml(person.name)}" maxlength="28"></label>${passengers.length > 1 ? `<button class="icon-button remove-person" type="button" aria-label="Supprimer ${escapeHtml(person.name)}">${icon("close")}</button>` : ""}<div class="avatar-popover" hidden><div class="emoji-list">${emojis.map((emoji) => `<button type="button" data-emoji="${emoji}">${emoji}</button>`).join("")}</div><label class="photo-button">Choisir une photo<input type="file" accept="image/png,image/jpeg,image/webp"></label><button class="initials-button" type="button">Utiliser mes initiales</button></div></div>`;
+}
+
+function drawPassengers() {
+  document.querySelector("#passengers").innerHTML = passengers
     .map(passengerRow)
     .join("");
-  document.querySelector("#add-passenger").disabled = passengers.length >= 8;
+  document.querySelector("#add-passenger").disabled = passengers.length >= 6;
+  const preview = document.querySelector(".preview-flight");
+  if (preview) preview.outerHTML = previewPlane();
 }
 
 function bindCreate() {
-  renderPassengers();
+  drawPassengers();
   document.querySelector("#add-leg").addEventListener("click", () => {
-    const flights = document.querySelector("#flights");
-    if (flights.children.length > 1) return;
-    flights.insertAdjacentHTML("beforeend", flightFields(2));
+    document
+      .querySelector("#flights")
+      .insertAdjacentHTML("beforeend", flightFields(2));
     document.querySelector("#add-leg").hidden = true;
   });
   document.querySelector("#flights").addEventListener("click", (event) => {
@@ -171,595 +125,615 @@ function bindCreate() {
     }
   });
   document.querySelector("#add-passenger").addEventListener("click", () => {
-    if (passengers.length >= 8) return;
     const index = passengers.length;
+    if (index >= 6) return;
     passengers.push({
       id: crypto.randomUUID(),
       name: `Voyageur ${index + 1}`,
       kind: "emoji",
-      value: emojiChoices[index % emojiChoices.length],
-      color: palette[index % palette.length],
+      value: emojis[index],
+      color: colors[index % colors.length],
     });
-    renderPassengers();
+    drawPassengers();
   });
-  document
-    .querySelector("#passenger-list")
-    .addEventListener("click", onPassengerClick);
-  document
-    .querySelector("#passenger-list")
-    .addEventListener("input", onPassengerInput);
-  document
-    .querySelector("#passenger-list")
-    .addEventListener("change", onPassengerFile);
+  const list = document.querySelector("#passengers");
+  list.addEventListener("input", (event) => {
+    if (!event.target.matches(".person-name")) return;
+    const person = passengers.find(
+      (item) => item.id === event.target.closest(".person-row").dataset.id,
+    );
+    person.name = event.target.value;
+    if (person.kind === "initials") person.value = initials(person.name);
+  });
+  list.addEventListener("click", onPersonClick);
+  list.addEventListener("change", onPersonFile);
   document.querySelector("#create-form").addEventListener("submit", createTrip);
 }
 
-function onPassengerClick(event) {
-  const row = event.target.closest(".passenger-row");
+function onPersonClick(event) {
+  const row = event.target.closest(".person-row");
   if (!row) return;
-  const passenger = passengers.find((p) => p.id === row.dataset.id);
-  if (event.target.closest(".remove-passenger")) {
-    if (passengers.length === 1) return;
-    passengers = passengers.filter((p) => p.id !== row.dataset.id);
-    renderPassengers();
+  const person = passengers.find((item) => item.id === row.dataset.id);
+  if (event.target.closest(".remove-person")) {
+    passengers = passengers.filter((item) => item.id !== person.id);
+    drawPassengers();
     return;
   }
-  if (event.target.closest(".avatar-button")) {
-    const picker = row.querySelector(".avatar-picker");
-    document.querySelectorAll(".avatar-picker").forEach((p) => {
-      if (p !== picker) p.hidden = true;
+  if (event.target.closest(".person-avatar")) {
+    const popover = row.querySelector(".avatar-popover");
+    document.querySelectorAll(".avatar-popover").forEach((item) => {
+      if (item !== popover) item.hidden = true;
     });
-    picker.hidden = !picker.hidden;
+    popover.hidden = !popover.hidden;
     return;
   }
   const emoji = event.target.closest("[data-emoji]");
   if (emoji) {
-    passenger.kind = "emoji";
-    passenger.value = emoji.dataset.emoji;
-    renderPassengers();
+    person.kind = "emoji";
+    person.value = emoji.dataset.emoji;
+    drawPassengers();
     return;
   }
-  const color = event.target.closest("[data-color]");
-  if (color) {
-    passenger.color = color.dataset.color;
-    renderPassengers();
-    return;
-  }
-  if (event.target.closest("[data-initials]")) {
-    passenger.kind = "initials";
-    passenger.value = initials(passenger.name);
-    renderPassengers();
+  if (event.target.closest(".initials-button")) {
+    person.kind = "initials";
+    person.value = initials(person.name);
+    drawPassengers();
   }
 }
 
-function onPassengerInput(event) {
-  const row = event.target.closest(".passenger-row");
-  if (!row || !event.target.matches(".passenger-name")) return;
-  const passenger = passengers.find((p) => p.id === row.dataset.id);
-  passenger.name = event.target.value;
-  if (passenger.kind === "initials") passenger.value = initials(passenger.name);
+async function onPersonFile(event) {
+  if (event.target.type !== "file" || !event.target.files[0]) return;
+  const person = passengers.find(
+    (item) => item.id === event.target.closest(".person-row").dataset.id,
+  );
+  person.kind = "photo";
+  person.value = await shrinkPhoto(event.target.files[0]);
+  drawPassengers();
 }
-
-async function onPassengerFile(event) {
-  if (!event.target.matches('input[type="file"]') || !event.target.files[0])
-    return;
-  const row = event.target.closest(".passenger-row");
-  const passenger = passengers.find((p) => p.id === row.dataset.id);
-  try {
-    passenger.value = await compressImage(event.target.files[0]);
-    passenger.kind = "photo";
-    renderPassengers();
-  } catch {
-    document.querySelector("#form-error").textContent =
-      "Cette photo ne peut pas être utilisée. Choisissez un fichier JPG, PNG ou WebP de moins de 8 Mo.";
-    event.target.value = "";
-  }
-}
-
-function compressImage(file) {
+function shrinkPhoto(file) {
   return new Promise((resolve, reject) => {
-    if (file.size > 8 * 1024 * 1024)
-      return reject(new Error("Photo trop lourde"));
-    const image = new Image();
-    image.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = 180;
-      canvas.height = 180;
-      const ctx = canvas.getContext("2d");
-      const scale = Math.max(180 / image.width, 180 / image.height);
-      ctx.drawImage(
-        image,
-        (180 - image.width * scale) / 2,
-        (180 - image.height * scale) / 2,
-        image.width * scale,
-        image.height * scale,
-      );
-      resolve(canvas.toDataURL("image/jpeg", 0.72));
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = reject;
+      image.onload = () => {
+        const size = 180,
+          canvas = document.createElement("canvas"),
+          side = Math.min(image.width, image.height);
+        canvas.width = size;
+        canvas.height = size;
+        canvas
+          .getContext("2d")
+          .drawImage(
+            image,
+            (image.width - side) / 2,
+            (image.height - side) / 2,
+            side,
+            side,
+            0,
+            0,
+            size,
+            size,
+          );
+        resolve(canvas.toDataURL("image/jpeg", 0.76));
+      };
+      image.src = reader.result;
     };
-    image.onerror = reject;
-    image.src = URL.createObjectURL(file);
+    reader.readAsDataURL(file);
   });
 }
 
 async function createTrip(event) {
   event.preventDefault();
-  const form = event.currentTarget;
-  const submit = form.querySelector('[type="submit"]');
-  const error = document.querySelector("#form-error");
+  const button = event.submitter,
+    error = document.querySelector("#form-error");
+  button.disabled = true;
+  button.querySelector("span").textContent = "Création…";
   error.textContent = "";
-  submit.disabled = true;
-  submit.classList.add("loading");
-  const data = new FormData(form);
-  const flights = [...document.querySelectorAll(".flight-row")].map((row) => ({
-    number: row.querySelector('input[id^="flight-"]').value,
-    scheduledDeparture: new Date(
-      `${row.querySelector('input[type="date"]').value}T${row.querySelector('input[type="time"]').value}`,
-    ).toISOString(),
-  }));
+  const flights = [...document.querySelectorAll(".flight-row")].map(
+    (row, index) => ({
+      number: row.querySelector(`#flight-${index + 1}`).value,
+      scheduledDeparture: new Date(
+        `${row.querySelector(`#date-${index + 1}`).value}T${row.querySelector(`#time-${index + 1}`).value}`,
+      ).toISOString(),
+    }),
+  );
   try {
     const response = await fetch("/api/trips", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        username: data.get("username"),
-        theme: data.get("theme"),
+        username: document.querySelector("#username").value,
         flights,
         passengers,
       }),
     });
-    const result = await response.json();
+    const data = await response.json();
     if (!response.ok)
-      throw new Error(result.error || "Impossible de créer le voyage.");
-    renderCreated(result.trip, result.password);
-  } catch (cause) {
-    error.textContent = cause.message;
-    submit.disabled = false;
-    submit.classList.remove("loading");
+      throw new Error(data.error || "Impossible de créer le voyage.");
+    renderSuccess(data);
+  } catch (reason) {
+    error.textContent = reason.message;
+    button.disabled = false;
+    button.querySelector("span").textContent = "Créer le lien";
   }
 }
 
-function renderCreated(trip, password) {
-  const link = `${location.origin}/?trip=${trip.id}`;
-  shell(`<main class="success-layout">
-    <section class="success-orbit"><div class="orbit-plane">${icon("plane", 78)}</div>${trip.passengers.map((p, i) => `<span class="success-avatar" style="--i:${i};--total:${trip.passengers.length};--avatar:${p.color}">${avatarContent(p)}</span>`).join("")}</section>
-    <section class="success-panel"><span class="success-check">${icon("check", 34)}</span><h1>Le voyage est prêt à décoller.</h1><p>Partagez ce lien. Il s’effacera automatiquement le ${formatDate(trip.expiresAt)}.</p>
-      <label>Lien public</label><div class="credential"><input id="share-link" value="${link}" readonly><button data-copy="#share-link">${icon("copy")} Copier</button></div>
-      <div class="password-box"><div>${icon("lock")}<span><small>Votre mot de passe de gestion</small><strong id="generated-password">${password}</strong></span></div><button data-copy="#generated-password">${icon("copy")} Copier</button></div>
-      <p class="warning-note">Notez ce mot de passe maintenant : il ne sera plus jamais affiché.</p>
-      <a class="primary-action link-action" href="${link}"><span>${icon("map")} Ouvrir le suivi</span></a>
-    </section></main>`);
+function renderSuccess(data) {
+  const url = `${location.origin}${location.pathname}?trip=${data.trip.id}`;
+  app.innerHTML = `<main class="success-page"><section class="success-ticket"><div class="success-plane">${icon("plane", 64)}</div><p class="ticket-label">Prêt au décollage</p><h1>Votre carte est en ligne.</h1><label>Lien à partager<div class="copy-field"><input id="share-link" value="${url}" readonly><button data-copy="share-link" type="button">${icon("copy")} Copier</button></div></label><label>Votre mot de passe<div class="copy-field"><code id="generated-password">${data.password}</code><button data-copy="generated-password" type="button">${icon("copy")} Copier</button></div></label><p class="save-warning">Gardez ce mot de passe : il n’est affiché qu’une fois.</p><a class="cta" href="${url}"><span>Voir la carte</span>${icon("arrow")}</a></section></main>`;
   document.querySelectorAll("[data-copy]").forEach((button) =>
     button.addEventListener("click", async () => {
-      const target = document.querySelector(button.dataset.copy);
+      const target = document.querySelector(`#${button.dataset.copy}`);
       await navigator.clipboard.writeText(target.value || target.textContent);
-      button.innerHTML = `${icon("check")} Copié`;
+      button.innerHTML = `${icon("copy")} Copié`;
     }),
   );
 }
 
-async function renderTrack(id) {
-  shell(
-    `<main class="track-loading"><div class="loader-plane">${icon("plane", 60)}</div><h1>On cherche l’avion…</h1><p>Les radars remuent ciel et terre.</p></main>`,
-  );
-  try {
-    const response = await fetch(`/api/trips/${encodeURIComponent(id)}`);
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "Voyage introuvable.");
-    renderTracker(result.trip, result.tracking);
-  } catch (cause) {
-    renderError(cause.message);
-  }
+function renderTracker(id) {
+  clearRuntime();
+  app.innerHTML = `<main class="tracker-page"><div id="map" aria-label="Carte du trajet"></div><div class="map-wash"></div><header class="tracker-top"><a class="brand compact" href="/">Bulle d’Air <span>${icon("plane", 17)}</span></a><div id="flight-summary" class="flight-summary"><span class="skeleton short"></span><span class="skeleton"></span></div><button id="notifications" class="round-button" type="button" aria-label="Activer les notifications">${icon("bell")}</button></header><section id="flight-card" class="flight-card" aria-live="polite"><span class="skeleton"></span><span class="skeleton short"></span></section><div id="friends-count" class="friends-count" hidden></div><button id="here-button" class="here-button" type="button">${icon("pin", 24)} <span>Je suis là</span></button><aside id="presence-sheet" class="presence-sheet" aria-labelledby="presence-title" hidden><button class="sheet-close icon-button" type="button" aria-label="Fermer">${icon("close")}</button><h2 id="presence-title">Faites coucou sur la carte</h2><p>Votre position est partagée seulement pendant que cette page reste ouverte.</p><form id="presence-form"><label><span>Votre prénom</span><input id="viewer-name" maxlength="28" required placeholder="Alex"></label><fieldset><legend>Votre tête sur la carte</legend><div class="viewer-emojis">${emojis
+    .slice(0, 8)
+    .map(
+      (emoji, index) =>
+        `<label><input type="radio" name="viewer-emoji" value="${emoji}" ${index === 0 ? "checked" : ""}><span>${emoji}</span></label>`,
+    )
+    .join(
+      "",
+    )}</div><label class="photo-button viewer-photo">Ou une photo<input id="viewer-photo" type="file" accept="image/png,image/jpeg,image/webp"></label></fieldset><label><span>Petit message <small>facultatif</small></span><input id="viewer-message" maxlength="100" placeholder="On vous attend avec des croissants !"></label><p id="presence-error" class="form-error" role="alert"></p><button class="cta" type="submit"><span>Partager ma position</span>${icon("locate")}</button><button id="stop-sharing" class="stop-button" type="button" hidden>${icon("stop")} Arrêter le partage</button></form><p class="sheet-privacy">Vous pourrez arrêter à tout moment. Tout est supprimé avec ce voyage.</p></aside><div id="toast" class="toast" role="status" aria-live="polite"></div></main>`;
+  const sheet = document.querySelector("#presence-sheet");
+  sheet.setAttribute("role", "dialog");
+  sheet.setAttribute("aria-modal", "true");
+  sheet.querySelector(":scope > p").textContent =
+    "Votre position se met à jour tant que cette page reste ouverte.";
+  bindTracker(id);
 }
 
-function renderTracker(trip, tracking) {
-  const active = tracking.legs[tracking.activeIndex];
-  shell(
-    `<main class="tracker theme-${trip.theme}">
-    <section class="tracker-head">
-      <div><div class="flight-chips">${tracking.legs.map((leg, i) => `<span class="flight-chip ${i === tracking.activeIndex ? "active" : ""}">${leg.number}${i < tracking.legs.length - 1 ? " · escale" : ""}</span>`).join("")}</div><h1>${active.origin?.iata || "Départ"} <span>${icon("plane", 34)}</span> ${active.destination?.iata || "Arrivée"}</h1><p>${active.airline || "Compagnie non identifiée"} · créé par ${escapeHtml(trip.ownerUsername)}</p></div>
-      <div class="status-block status-${active.status.code}"><i></i><span><small>Statut</small><strong>${active.status.label}</strong></span></div>
-    </section>
-    <section class="map-stage">
-      <div id="map" aria-label="Carte mondiale du suivi du vol"></div>
-      <div class="theme-ornaments" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
-      <div class="map-overlay top-left"><strong>${active.status.detail}</strong><small>Actualisé à ${new Date(active.updatedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })} · source ${active.source}</small></div>
-      <div class="theme-switcher" aria-label="Changer le thème de la carte">${themes.map((t) => `<button data-theme="${t.id}" class="${t.id === trip.theme ? "active" : ""}"><span class="mini-theme ${t.id}"></span>${t.name}</button>`).join("")}</div>
-      ${!active.position ? `<div class="no-signal">${icon("alert", 26)}<span><strong>Position en attente</strong><small>L’avion apparaîtra dès qu’un signal ADS-B public sera disponible.</small></span></div>` : ""}
-    </section>
-    <section class="flight-facts" aria-label="Informations détaillées du vol">${flightFacts(active)}</section>
-    <section class="flight-dock">
-      <div class="route-progress"><span><b>${active.origin?.city || active.origin?.iata || "Départ"}</b><small>${formatTime(active.scheduledDeparture)}</small></span><div><i style="width:${Math.round(active.progress * 100)}%"></i><b style="left:${Math.round(active.progress * 100)}%">${icon("plane", 18)}</b></div><span><b>${active.destination?.city || active.destination?.iata || "Arrivée"}</b><small>${active.destination?.iata || ""}</small></span></div>
-      <div class="crew"><div class="crew-stack">${trip.passengers.map((p, i) => `<span style="--avatar:${p.color};--i:${i}" title="${escapeHtml(p.name)}">${avatarContent(p)}</span>`).join("")}</div><p><strong>${trip.passengers.length} à bord</strong><small>${trip.passengers.map((p) => escapeHtml(p.name)).join(" · ")}</small></p></div>
-      <div class="dock-actions"><button id="notifications">${icon("bell")} M’alerter d’un retard</button><button id="manage">${icon("settings")} Gérer</button></div>
-    </section>
-    <footer class="tracker-footer"><span>Ce lien expire le ${formatDate(trip.expiresAt)}</span><span>Retard estimé, non officiel, sans clé de données commerciale.</span></footer>
-    <section class="manage-drawer" id="manage-drawer" role="dialog" aria-modal="true" aria-labelledby="manage-title" hidden><div><button class="drawer-close" aria-label="Fermer">${icon("close")}</button><h2 id="manage-title">Gérer ce voyage</h2><p>Identifiez-vous pour changer le thème partagé.</p><form id="manage-form"><label>Nom d’utilisateur<input name="username" autocomplete="username" required></label><label>Mot de passe<input name="password" type="password" autocomplete="current-password" required></label><label>Thème<select name="theme">${themes.map((t) => `<option value="${t.id}" ${t.id === trip.theme ? "selected" : ""}>${t.name}</option>`).join("")}</select></label><div class="form-error" role="alert"></div><button class="primary-action" type="submit"><span>Enregistrer</span></button></form></div></section>
-  </main>`,
-    trip.theme,
-  );
-  initMap(trip, active);
-  bindTracker(trip, active);
-  checkDelayNotification(trip, active);
-  clearInterval(pollTimer);
-  pollTimer = setInterval(() => refreshTracking(trip.id), 30000);
+function bindTracker(id) {
+  currentTrip = id;
+  document.querySelector("#here-button").addEventListener("click", (event) => {
+    sheetTrigger = event.currentTarget;
+    toggleSheet(true);
+  });
+  document
+    .querySelector(".sheet-close")
+    .addEventListener("click", () => toggleSheet(false));
+  document
+    .querySelector("#presence-sheet")
+    .addEventListener("keydown", trapSheetKeys);
+  document
+    .querySelector("#presence-form")
+    .addEventListener("submit", startSharing);
+  document
+    .querySelector("#stop-sharing")
+    .addEventListener("click", stopSharing);
+  document
+    .querySelector("#notifications")
+    .addEventListener("click", enableNotifications);
+  initMap();
+  refreshTrip(true);
+  pollTimer = setInterval(() => refreshTrip(false), 12_000);
 }
-
-async function refreshTracking(id) {
-  try {
-    const response = await fetch(`/api/trips/${encodeURIComponent(id)}`);
-    const result = await response.json();
-    if (!response.ok) return;
-    const active = result.tracking.legs[result.tracking.activeIndex];
-    const currentActive =
-      document.querySelector(".flight-chip.active")?.textContent || "";
-    if (!currentActive.startsWith(active.number)) {
-      renderTracker(result.trip, result.tracking);
-      return;
-    }
-    const status = document.querySelector(".status-block");
-    status.className = `status-block status-${active.status.code}`;
-    status.querySelector("strong").textContent = active.status.label;
-    document.querySelector(".map-overlay strong").textContent =
-      active.status.detail;
-    const facts = document.querySelector(".flight-facts");
-    if (facts) facts.innerHTML = flightFacts(active);
-    checkDelayNotification(result.trip, active);
-    if (active.position && map) updatePlaneMarker(result.trip, active);
-  } catch {
-    /* Next poll will retry. */
-  }
-}
-
-function initMap(trip, active) {
+function initMap() {
   map = new maplibregl.Map({
     container: "map",
-    style: "https://tiles.openfreemap.org/styles/liberty",
-    center: active.position
-      ? [active.position.longitude, active.position.latitude]
-      : active.origin && active.destination
-        ? [
-            (active.origin.longitude + active.destination.longitude) / 2,
-            (active.origin.latitude + active.destination.latitude) / 2,
-          ]
-        : [2, 30],
-    zoom: active.position ? 4.5 : 1.7,
+    style: "https://tiles.openfreemap.org/styles/positron",
+    center: [2, 30],
+    zoom: 1.45,
     attributionControl: false,
   });
-  map.addControl(
-    new maplibregl.NavigationControl({ showCompass: false }),
-    "top-right",
-  );
   map.addControl(
     new maplibregl.AttributionControl({ compact: true }),
     "bottom-right",
   );
-  map.on("load", () => {
-    if (active.origin && active.destination) {
-      map.addSource("route", {
-        type: "geojson",
-        data: {
-          type: "Feature",
-          properties: {},
-          geometry: {
-            type: "LineString",
-            coordinates: [
-              [active.origin.longitude, active.origin.latitude],
-              [active.destination.longitude, active.destination.latitude],
-            ],
-          },
-        },
-      });
-      const design = themeDesign(trip.theme);
-      map.addLayer({
-        id: "route-shadow",
-        type: "line",
-        source: "route",
-        paint: {
-          "line-color": design.shadow,
-          "line-width": design.shadowWidth,
-          "line-opacity": 0.88,
-        },
-      });
-      map.addLayer({
-        id: "route",
-        type: "line",
-        source: "route",
-        paint: {
-          "line-color": design.route,
-          "line-width": design.width,
-          "line-dasharray": design.dash,
-        },
-      });
-      [active.origin, active.destination].forEach((airport, i) =>
-        new maplibregl.Marker({
-          element: airportMarker(airport.iata, i ? "arrival" : "departure"),
-          anchor: "bottom",
-        })
-          .setLngLat([airport.longitude, airport.latitude])
-          .addTo(map),
-      );
-      const bounds = new maplibregl.LngLatBounds(
-        [active.origin.longitude, active.origin.latitude],
-        [active.destination.longitude, active.destination.latitude],
-      );
-      map.fitBounds(bounds, {
-        padding: { top: 120, bottom: 120, left: 80, right: 80 },
-        maxZoom: 5,
-        duration: 0,
-      });
-    }
-    if (active.position) updatePlaneMarker(trip, active);
-  });
-}
-
-function airportMarker(code, type) {
-  const el = document.createElement("div");
-  el.className = `airport-marker ${type}`;
-  el.textContent = code;
-  return el;
-}
-
-function updatePlaneMarker(trip, active) {
-  document.querySelector(".plane-marker")?.remove();
-  const el = document.createElement("div");
-  el.className = "plane-marker";
-  el.innerHTML = `<div class="plane-core" style="transform:rotate(${active.position.heading - 45}deg)">${icon("plane", 38)}</div>${trip.passengers.map((p, i) => `<span style="--i:${i};--total:${trip.passengers.length};--avatar:${p.color}">${avatarContent(p)}</span>`).join("")}`;
-  new maplibregl.Marker({ element: el })
-    .setLngLat([active.position.longitude, active.position.latitude])
-    .addTo(map);
-  map.easeTo({
-    center: [active.position.longitude, active.position.latitude],
-    duration: 1000,
-  });
-}
-
-function bindTracker(trip, active) {
-  document
-    .querySelector("#notifications")
-    .addEventListener("click", async (event) => {
-      const button = event.currentTarget;
-      if (!("Notification" in window))
-        return setButtonMessage(button, "Non disponible sur ce navigateur");
-      const permission = await Notification.requestPermission();
-      localStorage.setItem(
-        `notify:${trip.id}`,
-        permission === "granted" ? "yes" : "no",
-      );
-      setButtonMessage(
-        button,
-        permission === "granted" ? "Alertes activées" : "Alertes refusées",
-      );
-      if (permission === "granted") checkDelayNotification(trip, active);
-    });
-  document
-    .querySelectorAll("[data-theme]")
-    .forEach((button) =>
-      button.addEventListener("click", () => applyTheme(button.dataset.theme)),
-    );
-  const drawer = document.querySelector("#manage-drawer");
-  const manageButton = document.querySelector("#manage");
-  const closeDrawer = () => {
-    drawer.hidden = true;
-    manageButton.focus();
-  };
-  manageButton.addEventListener("click", () => {
-    drawer.hidden = false;
-    drawer.querySelector('input[name="username"]').focus();
-  });
-  drawer.querySelector(".drawer-close").addEventListener("click", closeDrawer);
-  drawer.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") return closeDrawer();
-    if (event.key !== "Tab") return;
-    const focusable = [
-      ...drawer.querySelectorAll("button,input,select,[href]"),
-    ].filter((el) => !el.disabled);
-    const first = focusable[0],
-      last = focusable.at(-1);
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
-  });
-  document
-    .querySelector("#manage-form")
-    .addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const data = new FormData(event.currentTarget);
-      const error = event.currentTarget.querySelector(".form-error");
-      try {
-        const response = await fetch(`/api/trips/${trip.id}`, {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(Object.fromEntries(data)),
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error);
-        applyTheme(result.trip.theme);
-        closeDrawer();
-      } catch (cause) {
-        error.textContent = cause.message;
-      }
-    });
-}
-
-function applyTheme(theme) {
-  document.body.dataset.theme = theme;
-  const tracker = document.querySelector(".tracker");
-  tracker.className = `tracker theme-${theme}`;
-  document
-    .querySelectorAll("[data-theme]")
-    .forEach((button) =>
-      button.classList.toggle("active", button.dataset.theme === theme),
-    );
-  if (map?.getLayer("route")) {
-    const design = themeDesign(theme);
-    map.setPaintProperty("route", "line-color", design.route);
-    map.setPaintProperty("route", "line-width", design.width);
-    map.setPaintProperty("route", "line-dasharray", design.dash);
-    map.setPaintProperty("route-shadow", "line-color", design.shadow);
-    map.setPaintProperty("route-shadow", "line-width", design.shadowWidth);
-  }
-}
-
-function themeDesign(theme) {
-  return (
-    {
-      minecraft: {
-        route: "#315f2e",
-        shadow: "#e9ffd7",
-        width: 4,
-        shadowWidth: 9,
-        dash: [1, 1],
-      },
-      mario: {
-        route: "#e03636",
-        shadow: "#ffffff",
-        width: 4,
-        shadowWidth: 10,
-        dash: [2, 1],
-      },
-      pokemon: {
-        route: "#28488f",
-        shadow: "#ffe65a",
-        width: 4,
-        shadowWidth: 11,
-        dash: [3, 1.5],
-      },
-      lego: {
-        route: "#ed2d2d",
-        shadow: "#ffd62f",
-        width: 5,
-        shadowWidth: 12,
-        dash: [1, 0.7],
-      },
-    }[theme] || {
-      route: "#272333",
-      shadow: "#ffffff",
-      width: 3,
-      shadowWidth: 7,
-      dash: [2, 2],
-    }
+  map.addControl(
+    new maplibregl.NavigationControl({ showCompass: false }),
+    "bottom-right",
   );
 }
 
-function checkDelayNotification(trip, active) {
-  const key = `last-status:${trip.id}`;
-  const previous = localStorage.getItem(key);
-  localStorage.setItem(key, active.status.code);
-  if (
-    active.status.code === "delayed_estimate" &&
-    previous !== "delayed_estimate" &&
-    localStorage.getItem(`notify:${trip.id}`) === "yes" &&
-    Notification.permission === "granted"
-  ) {
-    new Notification(`${active.number} · retard estimé`, {
-      body: active.status.detail,
-      icon: "/plane.svg",
-      tag: `delay-${trip.id}`,
-    });
-  }
-}
-
-function setButtonMessage(button, message) {
-  button.innerHTML = `${icon("check")} ${message}`;
-}
-function initials(name) {
-  return (
-    String(name || "?")
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((p) => p[0]?.toUpperCase())
-      .join("") || "?"
-  );
-}
-function avatarContent(p) {
-  return p.kind === "photo"
-    ? `<img src="${p.value}" alt="${escapeHtml(p.name)}">`
-    : escapeHtml(p.value || initials(p.name));
-}
-function formatDate(value) {
-  return new Date(value).toLocaleString("fr-FR", {
-    day: "numeric",
-    month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-function formatTime(value) {
-  return new Date(value).toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-function formatFlightDateTime(value, timeZone) {
-  if (!value) return "Non disponible";
-  const options = {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZoneName: "short",
-  };
-  if (timeZone) options.timeZone = timeZone;
+async function refreshTrip(first) {
   try {
-    return new Date(value).toLocaleString("fr-FR", options);
-  } catch {
-    delete options.timeZone;
-    return new Date(value).toLocaleString("fr-FR", options);
+    const response = await fetch(`/api/trips/${currentTrip}`, {
+      cache: "no-store",
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    currentTracking = data.tracking;
+    drawTracker(data, first);
+  } catch (reason) {
+    document.querySelector("#flight-card").innerHTML =
+      `<strong>Le voyage s’est envolé.</strong><span>${escapeHtml(reason.message || "Lien expiré")}</span>`;
   }
 }
-function formatDuration(minutes) {
-  if (!Number.isFinite(minutes)) return "—";
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return `${hours ? `${hours} h ` : ""}${String(rest).padStart(2, "0")} min`;
+
+function drawTracker(data, first) {
+  const leg =
+      data.tracking.legs[data.tracking.activeIndex] || data.tracking.legs[0],
+    origin = leg.origin?.iata || "•••",
+    destination = leg.destination?.iata || "•••";
+  const sourceLabel = leg.position?.estimated
+    ? "Trajet horaire estimé"
+    : leg.position
+      ? "Position ADS-B en direct"
+      : "En attente du signal";
+  document.querySelector("#flight-summary").innerHTML =
+    `<strong>${escapeHtml(leg.number)}</strong><span>${origin} <b>→</b> ${destination}</span>`;
+  maybeNotify(leg);
+  document.querySelector("#flight-card").innerHTML =
+    `<div class="flight-state"><i class="status-dot ${leg.position?.estimated ? "estimated" : ""}"></i><div><strong>${escapeHtml(leg.status.label)}</strong><span>${escapeHtml(sourceLabel)}</span></div></div><div class="flight-times"><span><small>Départ prévu</small><strong>${formatTime(leg.scheduledDeparture, leg.origin?.timeZone)}</strong></span><b>${Math.round((leg.progress || 0) * 100)}%</b><span><small>Arrivée estimée</small><strong>${formatTime(leg.estimatedArrival, leg.destination?.timeZone)}</strong></span></div>`;
+  drawMapData(leg, data.trip.passengers, data.presences || [], first);
+  const count = (data.presences || []).length,
+    badge = document.querySelector("#friends-count");
+  badge.hidden = count === 0;
+  badge.innerHTML = count
+    ? `<span>${count}</span> proche${count > 1 ? "s" : ""} sur la carte`
+    : "";
 }
-function headingLabel(value) {
-  if (!Number.isFinite(value)) return "—";
-  const points = ["N", "NE", "E", "SE", "S", "SO", "O", "NO"];
-  return `${points[Math.round(value / 45) % 8]} · ${Math.round(value)}°`;
+
+function drawMapData(leg, crew, presences, first) {
+  const ready = () => {
+    const coordinates = [];
+    if (leg.origin && leg.destination) {
+      setRoute(routePoints(leg.origin, leg.destination));
+      coordinates.push(
+        [leg.origin.longitude, leg.origin.latitude],
+        [leg.destination.longitude, leg.destination.latitude],
+      );
+    }
+    if (leg.position) {
+      setPlaneMarker(leg.position, crew);
+      coordinates.push([leg.position.longitude, leg.position.latitude]);
+      animateEstimatedPlane(leg);
+    }
+    syncPresenceMarkers(presences);
+    presences.forEach((person) =>
+      coordinates.push([person.longitude, person.latitude]),
+    );
+    if (first && coordinates.length > 1) fitCoordinates(coordinates);
+  };
+  if (map.loaded()) ready();
+  else map.once("load", ready);
 }
-function flightFacts(active) {
-  const live = active.timingSource === "live-estimate";
-  const position = active.position;
-  const arrival = active.estimatedArrival || active.plannedArrival;
-  const fact = (label, value, note = "") => `<div class="fact"><small>${escapeHtml(label)}</small><strong>${escapeHtml(value)}</strong>${note ? `<span>${escapeHtml(note)}</span>` : ""}</div>`;
-  return `<div class="facts-heading"><div><span class="eyebrow">Carnet de vol</span><h2>Les infos utiles, sans jargon</h2></div><span class="estimate-chip">${live ? "ETA recalculée en direct" : "Estimation selon la route"}</span></div>
-    <div class="time-board">
-      <article><span class="board-dot departure"></span><small>Départ prévu</small><strong>${formatFlightDateTime(active.scheduledDeparture, active.origin?.timeZone)}</strong><p>${escapeHtml(active.origin?.name || "Aéroport de départ non identifié")}</p><em>${escapeHtml(active.origin?.city || "")}${active.origin?.country ? ` · ${escapeHtml(active.origin.country)}` : ""}</em></article>
-      <div class="board-journey"><span>${icon("plane", 20)}</span><strong>${formatDuration(active.plannedDurationMinutes)}</strong><small>${Number.isFinite(active.distanceKm) ? `${active.distanceKm.toLocaleString("fr-FR")} km` : "Distance indisponible"}</small></div>
-      <article><span class="board-dot arrival"></span><small>${live ? "Arrivée estimée en direct" : "Arrivée estimée"}</small><strong>${formatFlightDateTime(arrival, active.destination?.timeZone)}</strong><p>${escapeHtml(active.destination?.name || "Aéroport d’arrivée non identifié")}</p><em>${escapeHtml(active.destination?.city || "")}${active.destination?.country ? ` · ${escapeHtml(active.destination.country)}` : ""}</em></article>
-    </div>
-    <div class="live-facts">
-      ${fact("Distance restante", Number.isFinite(active.remainingKm) ? `${active.remainingKm.toLocaleString("fr-FR")} km` : "En attente")}
-      ${fact("Altitude", position && position.altitude !== "ground" && Number.isFinite(Number(position.altitude)) ? `${Math.round(Number(position.altitude)).toLocaleString("fr-FR")} ft` : position?.altitude === "ground" ? "Au sol" : "En attente")}
-      ${fact("Vitesse sol", position && Number.isFinite(Number(position.speed)) ? `${Math.round(Number(position.speed))} kt` : "En attente")}
-      ${fact("Cap", position ? headingLabel(Number(position.heading)) : "En attente")}
-      ${fact("Avion", position?.aircraftType || "Non communiqué", position?.registration || "")}
-      ${fact("Terminal & porte", "Non communiqués", "Source gratuite")}
-    </div>
-    <p class="facts-note">Les heures sont affichées dans le fuseau de chaque aéroport. Le départ est celui saisi lors de la création. L’arrivée et la durée sont calculées depuis la route ADSBdb${live ? ", puis l’ETA est ajustée avec la position et la vitesse ADS-B" : ""}. Ce ne sont pas des horaires officiels de compagnie.</p>`;
+function routePoints(origin, destination, count = 80) {
+  let delta = destination.longitude - origin.longitude;
+  if (delta > 180) delta -= 360;
+  if (delta < -180) delta += 360;
+  return Array.from({ length: count + 1 }, (_, index) => {
+    const p = index / count;
+    let lng = origin.longitude + delta * p;
+    if (lng > 180) lng -= 360;
+    if (lng < -180) lng += 360;
+    return [
+      lng,
+      origin.latitude +
+        (destination.latitude - origin.latitude) * p +
+        Math.sin(Math.PI * p) * Math.min(18, Math.abs(delta) * 0.12),
+    ];
+  });
 }
-function escapeHtml(value) {
-  return String(value ?? "").replace(
-    /[&<>'"]/g,
-    (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[
-        c
-      ],
+function setRoute(points) {
+  const data = {
+    type: "Feature",
+    geometry: { type: "LineString", coordinates: points },
+  };
+  if (map.getSource("route")) map.getSource("route").setData(data);
+  else {
+    map.addSource("route", { type: "geojson", data });
+    map.addLayer({
+      id: "route",
+      type: "line",
+      source: "route",
+      paint: {
+        "line-color": "#ff5f57",
+        "line-width": 4,
+        "line-dasharray": [1.5, 1.5],
+        "line-opacity": 0.9,
+      },
+    });
+  }
+}
+
+function setPlaneMarker(position, crew) {
+  if (!planeMarker) {
+    const element = document.createElement("div");
+    element.className = "plane-marker";
+    element.innerHTML = `<div class="plane-toy"><div class="air-crew">${crew
+      .slice(0, 6)
+      .map(
+        (person, index) =>
+          `<span style="--i:${index};--c:${person.color}" title="${escapeHtml(person.name)}">${avatarHtml(person, person.name)}</span>`,
+      )
+      .join("")}</div><div class="map-plane">${icon("plane", 42)}</div></div>`;
+    planeMarker = new maplibregl.Marker({ element, anchor: "center" })
+      .setLngLat([position.longitude, position.latitude])
+      .addTo(map);
+  } else planeMarker.setLngLat([position.longitude, position.latitude]);
+}
+function animateEstimatedPlane(leg) {
+  clearInterval(moveTimer);
+  if (
+    !leg.position?.estimated ||
+    !leg.origin ||
+    !leg.destination ||
+    !leg.plannedDurationMinutes
+  )
+    return;
+  moveTimer = setInterval(() => {
+    const progress = Math.max(
+        0.02,
+        Math.min(
+          0.98,
+          (Date.now() - Date.parse(leg.scheduledDeparture)) /
+            (leg.plannedDurationMinutes * 60_000),
+        ),
+      ),
+      point = routePoints(leg.origin, leg.destination, 200)[
+        Math.round(progress * 200)
+      ];
+    if (planeMarker && point) planeMarker.setLngLat(point);
+  }, 1000);
+}
+
+function syncPresenceMarkers(presences) {
+  const active = new Set(presences.map((person) => person.id));
+  presenceMarkers.forEach((marker, id) => {
+    if (!active.has(id)) {
+      marker.remove();
+      presenceMarkers.delete(id);
+    }
+  });
+  presences.forEach((person) => {
+    let marker = presenceMarkers.get(person.id);
+    if (!marker) {
+      const element = document.createElement("div");
+      element.className = `friend-marker ${person.isLive ? "is-live" : ""}`;
+      element.innerHTML = `<div class="friend-message">${escapeHtml(person.message || "Je suis là !")}</div><div class="friend-pin" style="--c:${person.avatar.color}">${avatarHtml(person.avatar, person.name)}</div><strong>${escapeHtml(person.name)}</strong>`;
+      marker = new maplibregl.Marker({ element, anchor: "bottom" })
+        .setLngLat([person.longitude, person.latitude])
+        .addTo(map);
+      presenceMarkers.set(person.id, marker);
+    } else marker.setLngLat([person.longitude, person.latitude]);
+  });
+}
+function fitCoordinates(points) {
+  const bounds = points.reduce(
+    (box, point) => box.extend(point),
+    new maplibregl.LngLatBounds(points[0], points[0]),
+  );
+  map.fitBounds(bounds, {
+    padding: { top: 130, right: 70, bottom: 190, left: 70 },
+    maxZoom: 5,
+    duration: 900,
+  });
+}
+function toggleSheet(show) {
+  const sheet = document.querySelector("#presence-sheet");
+  sheet.hidden = !show;
+  document.body.classList.toggle("sheet-open", show);
+  if (show)
+    setTimeout(() => document.querySelector("#viewer-name").focus(), 80);
+  else sheetTrigger?.focus();
+}
+
+function trapSheetKeys(event) {
+  const sheet = event.currentTarget;
+  if (event.key === "Escape") {
+    toggleSheet(false);
+    return;
+  }
+  if (event.key !== "Tab") return;
+  const focusable = [
+    ...sheet.querySelectorAll(
+      'button:not([hidden]):not(:disabled),input:not([type="hidden"]):not(:disabled),[href]',
+    ),
+  ].filter((item) => item.offsetParent !== null);
+  if (!focusable.length) return;
+  const first = focusable[0],
+    last = focusable.at(-1);
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+async function startSharing(event) {
+  event.preventDefault();
+  const error = document.querySelector("#presence-error"),
+    button = event.submitter;
+  error.textContent = "";
+  if (!navigator.geolocation) {
+    error.textContent =
+      "La localisation n’est pas disponible sur cet appareil.";
+    return;
+  }
+  button.disabled = true;
+  button.querySelector("span").textContent = "Recherche de votre position…";
+  const photo = document.querySelector("#viewer-photo").files[0],
+    avatar = photo
+      ? { kind: "photo", value: await shrinkPhoto(photo), color: colors[3] }
+      : {
+          kind: "emoji",
+          value: document.querySelector('[name="viewer-emoji"]:checked').value,
+          color: colors[3],
+        };
+  const profile = {
+    name: document.querySelector("#viewer-name").value.trim(),
+    message: document.querySelector("#viewer-message").value.trim(),
+    avatar,
+  };
+  if (!profile.name) {
+    error.textContent = "Ajoutez votre prénom.";
+    button.disabled = false;
+    return;
+  }
+  document.querySelector("#stop-sharing").hidden = false;
+  locationWatch = navigator.geolocation.watchPosition(
+    (position) => sendPresence(position, profile),
+    (reason) => {
+      sharingFailed(
+        reason.code === 1
+          ? "Vous avez refusé la localisation. Vous pouvez l’autoriser dans les réglages du navigateur."
+          : "Votre position est introuvable pour le moment.",
+      );
+    },
+    { enableHighAccuracy: true, maximumAge: 10_000, timeout: 15_000 },
   );
 }
-function renderError(message) {
-  shell(
-    `<main class="error-page"><div>${icon("alert", 46)}</div><h1>Ce voyage a raté sa correspondance.</h1><p>${escapeHtml(message)}</p><a href="/">Créer un nouveau lien</a></main>`,
+
+async function sendPresence(position, profile) {
+  if (presenceSending) return;
+  presenceSending = true;
+  const storageKey = `bulle-presence-${currentTrip}`,
+    saved = JSON.parse(localStorage.getItem(storageKey) || "null"),
+    payload = {
+      ...profile,
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      accuracy: position.coords.accuracy,
+    };
+  try {
+    const response = await fetch(
+      saved
+        ? `/api/trips/${currentTrip}/presences/${saved.id}`
+        : `/api/trips/${currentTrip}/presences`,
+      {
+        method: saved ? "PATCH" : "POST",
+        headers: {
+          "content-type": "application/json",
+          ...(saved ? { "x-presence-secret": saved.secret } : {}),
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Partage impossible.");
+    if (!saved)
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({ id: data.presence.id, secret: data.secret }),
+      );
+    document.querySelector("#presence-form .cta").hidden = true;
+    document.querySelector("#presence-error").textContent = "";
+    showToast("Vous êtes sur la carte !");
+    refreshTrip(false);
+  } catch (reason) {
+    sharingFailed(reason.message || "Partage impossible.");
+  } finally {
+    presenceSending = false;
+  }
+}
+
+function sharingFailed(message) {
+  if (locationWatch != null) navigator.geolocation.clearWatch(locationWatch);
+  locationWatch = null;
+  const cta = document.querySelector("#presence-form .cta");
+  cta.hidden = false;
+  cta.disabled = false;
+  cta.querySelector("span").textContent = "Partager ma position";
+  document.querySelector("#stop-sharing").hidden = true;
+  document.querySelector("#presence-error").textContent = message;
+}
+
+async function stopSharing() {
+  const storageKey = `bulle-presence-${currentTrip}`,
+    saved = JSON.parse(localStorage.getItem(storageKey) || "null");
+  if (locationWatch != null) navigator.geolocation.clearWatch(locationWatch);
+  locationWatch = null;
+  if (saved)
+    await fetch(`/api/trips/${currentTrip}/presences/${saved.id}`, {
+      method: "DELETE",
+      headers: { "x-presence-secret": saved.secret },
+    });
+  localStorage.removeItem(storageKey);
+  const cta = document.querySelector("#presence-form .cta");
+  cta.hidden = false;
+  cta.disabled = false;
+  cta.querySelector("span").textContent = "Partager ma position";
+  document.querySelector("#stop-sharing").hidden = true;
+  toggleSheet(false);
+  showToast("Partage arrêté.");
+  refreshTrip(false);
+}
+
+async function enableNotifications() {
+  if (!("Notification" in window)) {
+    showToast("Notifications non disponibles ici.");
+    return;
+  }
+  const permission = await Notification.requestPermission();
+  if (permission === "granted") {
+    localStorage.setItem(`bulle-notify-${currentTrip}`, "yes");
+    document.querySelector("#notifications").classList.add("active");
+    showToast("Notifications activées.");
+  } else showToast("Notifications non activées.");
+}
+function maybeNotify(leg) {
+  const key = `bulle-status-${currentTrip}`;
+  const previous = localStorage.getItem(key);
+  localStorage.setItem(key, leg.status.code);
+  if (
+    previous &&
+    previous !== leg.status.code &&
+    leg.status.code.includes("delayed") &&
+    localStorage.getItem(`bulle-notify-${currentTrip}`) === "yes" &&
+    Notification.permission === "granted"
+  )
+    new Notification(`${leg.number} · Retard estimé`, {
+      body: leg.status.detail,
+    });
+}
+function stopPresenceOnExit() {
+  if (!currentTrip) return;
+  const saved = JSON.parse(
+    localStorage.getItem(`bulle-presence-${currentTrip}`) || "null",
   );
+  if (saved)
+    fetch(`/api/trips/${currentTrip}/presences/${saved.id}`, {
+      method: "DELETE",
+      headers: { "x-presence-secret": saved.secret },
+      keepalive: true,
+    });
+}
+function showToast(message) {
+  const toast = document.querySelector("#toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 2500);
+}
+function formatTime(value, timeZone) {
+  if (!value || !Number.isFinite(Date.parse(value))) return "—";
+  try {
+    return new Intl.DateTimeFormat("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: timeZone || undefined,
+    }).format(new Date(value));
+  } catch {
+    return new Intl.DateTimeFormat("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(value));
+  }
+}
+function clearRuntime() {
+  clearInterval(pollTimer);
+  clearInterval(moveTimer);
+  if (locationWatch != null && navigator.geolocation)
+    navigator.geolocation.clearWatch(locationWatch);
+  pollTimer = moveTimer = locationWatch = null;
+  if (map) map.remove();
+  map = planeMarker = null;
+  presenceMarkers.clear();
+  document.body.classList.remove("sheet-open");
 }
 
 const tripId = new URLSearchParams(location.search).get("trip");
-if (tripId) renderTrack(tripId);
+window.addEventListener("pagehide", stopPresenceOnExit);
+if (tripId) renderTracker(tripId);
 else renderCreate();

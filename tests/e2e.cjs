@@ -1,65 +1,110 @@
-const path = require('path');
-const { chromium } = require('C:/Users/ilanp/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const fs = require("fs");
+const path = require("path");
+const {
+  chromium,
+} = require("C:/Users/ilanp/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright");
 
 (async () => {
+  const base = process.argv[2] || "http://localhost:8888";
+  fs.mkdirSync(path.resolve(".impeccable/review"), { recursive: true });
   const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, permissions: ['notifications'] });
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    permissions: ["geolocation", "notifications"],
+    geolocation: { latitude: 48.8566, longitude: 2.3522 },
+  });
   const page = await context.newPage();
   const errors = [];
-  page.on('console', msg => { if (msg.type() === 'error') errors.push(`console: ${msg.text()}`); });
-  page.on('pageerror', error => errors.push(`page: ${error.message}`));
-  const base = process.argv[2] || 'http://localhost:8888';
+  page.on("console", (message) => {
+    if (message.type() === "error" && !message.text().includes("favicon"))
+      errors.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => errors.push(`page: ${error.message}`));
 
-  await page.goto(base, { waitUntil: 'networkidle' });
-  await page.fill('#username', 'Camille Test');
-  await page.fill('#flight-1', 'AF123');
-  await page.click('#add-leg');
-  await page.fill('#flight-2', 'BA123');
-  await page.locator('.theme-option', { hasText: 'Super Mario' }).click();
-  for (let i = 0; i < 3; i += 1) await page.click('#add-passenger');
-  const names = ['Camille', 'Alex', 'Sam', 'Lou'];
-  for (let i = 0; i < names.length; i += 1) await page.locator('.passenger-name').nth(i).fill(names[i]);
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({ path: path.resolve('.impeccable/review/create-desktop.png'), fullPage: true });
-  await page.click('.primary-action[type="submit"]');
-  await page.waitForSelector('.success-panel', { timeout: 15000 });
-  const password = (await page.locator('#generated-password').textContent()).trim();
-  const shareUrl = await page.locator('#share-link').inputValue();
-  if (!password || !shareUrl.includes('?trip=')) throw new Error('Creation result missing credentials or link');
+  await page.goto(base, { waitUntil: "networkidle" });
+  await page.screenshot({
+    path: path.resolve(".impeccable/review/create-desktop.png"),
+    fullPage: true,
+  });
+  await page.fill("#username", "Camille Test");
+  await page.fill("#flight-1", "AF123");
+  await page.click("#add-passenger");
+  await page.locator(".person-name").nth(1).fill("Lou");
+  await page.click("#add-passenger");
+  await page.locator(".person-name").nth(2).fill("Sam");
+  await page.click('.cta[type="submit"]');
+  await page.waitForSelector(".success-ticket", { timeout: 15000 });
+  const url = await page.locator("#share-link").inputValue();
+  const password = (
+    await page.locator("#generated-password").textContent()
+  ).trim();
+  if (!url.includes("?trip=") || password.length < 10)
+    throw new Error("Le lien ou le mot de passe manque.");
 
-  await page.goto(shareUrl, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('.tracker', { timeout: 30000 });
-  await page.waitForSelector('.flight-facts', { timeout: 15000 });
-  const flightFacts = await page.locator('.flight-facts').innerText();
-  if (!flightFacts.includes('Départ prévu') || !flightFacts.includes('Arrivée estimée')) throw new Error('Flight timing details missing');
-  await page.waitForSelector('.maplibregl-canvas', { timeout: 15000 });
-  await page.waitForTimeout(8000);
-  const desktop = await page.evaluate(() => ({
-    width: document.documentElement.scrollWidth,
-    viewport: innerWidth,
-    flightChips: document.querySelectorAll('.flight-chip').length,
-    crew: document.querySelectorAll('.crew-stack > span').length,
-    theme: document.body.dataset.theme,
-    status: document.querySelector('.status-block strong')?.textContent,
-  }));
-  await page.screenshot({ path: path.resolve('.impeccable/review/tracker-desktop.png'), fullPage: true });
-  await page.click('[data-theme="pokemon"]');
-  if ((await page.locator('body').getAttribute('data-theme')) !== 'pokemon') throw new Error('Theme switch failed');
-  await page.click('#notifications');
-  await page.click('#manage');
-  await page.fill('#manage-form input[name="username"]', 'Camille Test');
-  await page.fill('#manage-form input[name="password"]', password);
-  await page.selectOption('#manage-form select[name="theme"]', 'lego');
-  await page.click('#manage-form .primary-action');
-  await page.waitForSelector('#manage-drawer', { state: 'hidden' });
-  if ((await page.locator('body').getAttribute('data-theme')) !== 'lego') throw new Error('Authenticated update failed');
+  await page.goto(url, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector(".maplibregl-canvas", { timeout: 15000 });
+  await page.waitForSelector(".plane-marker", { timeout: 30000 });
+  await page.screenshot({
+    path: path.resolve(".impeccable/review/tracker-desktop.png"),
+  });
+  await page.click("#here-button");
+  await page.fill("#viewer-name", "Alex");
+  await page.fill("#viewer-message", "On vous attend avec des croissants !");
+  await page.click("#presence-form .cta");
+  await page.waitForSelector(".friend-marker", { timeout: 15000 });
+  const message = await page.locator(".friend-message").textContent();
+  if (!message.includes("croissants"))
+    throw new Error("La bulle de présence ne contient pas le message.");
+  await page.click("#stop-sharing");
+  await page.waitForSelector(".friend-marker", {
+    state: "detached",
+    timeout: 15000,
+  });
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: path.resolve('.impeccable/review/tracker-mobile.png'), fullPage: true });
-  const mobile = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: innerWidth, mapHeight: document.querySelector('#map').getBoundingClientRect().height }));
-
-  const result = { created: true, passwordLength: password.length, desktop, mobile, errors };
-  console.log(JSON.stringify(result, null, 2));
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForSelector(".plane-marker", { timeout: 30000 });
+  await page.screenshot({
+    path: path.resolve(".impeccable/review/tracker-mobile.png"),
+  });
+  const metrics = await page.evaluate(() => {
+    const plane = document
+      .querySelector(".plane-marker")
+      .getBoundingClientRect();
+    return {
+      viewport: innerWidth,
+      scrollWidth: document.documentElement.scrollWidth,
+      mapHeight: document.querySelector("#map").getBoundingClientRect().height,
+      crew: document.querySelectorAll(".air-crew>span").length,
+      planeVisible:
+        plane.right > 0 &&
+        plane.left < innerWidth &&
+        plane.bottom > 0 &&
+        plane.top < innerHeight,
+    };
+  });
+  await page.click("#here-button");
+  await page.fill("#viewer-name", "Mobile");
+  await page.click(".sheet-close");
+  if (await page.locator("#presence-sheet").isVisible())
+    throw new Error("Le panneau mobile ne se ferme pas.");
+  console.log(
+    JSON.stringify(
+      { created: true, presenceCreatedAndRemoved: true, metrics, errors },
+      null,
+      2,
+    ),
+  );
   await browser.close();
-  if (errors.length || desktop.width > desktop.viewport || mobile.width > mobile.viewport || desktop.flightChips !== 2 || desktop.crew !== 4) process.exit(1);
-})().catch(error => { console.error(error); process.exit(1); });
+  if (
+    errors.length ||
+    metrics.scrollWidth > metrics.viewport ||
+    metrics.mapHeight !== 844 ||
+    metrics.crew !== 3 ||
+    !metrics.planeVisible
+  )
+    process.exit(1);
+})().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

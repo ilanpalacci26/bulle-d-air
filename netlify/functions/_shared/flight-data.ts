@@ -46,6 +46,19 @@ function addMinutes(iso: string, minutes: number) {
   return Number.isFinite(time) ? new Date(time + minutes * 60_000).toISOString() : null;
 }
 
+function interpolatePosition(origin: Airport, destination: Airport, progress: number) {
+  let longitudeDelta = destination.longitude - origin.longitude;
+  if (longitudeDelta > 180) longitudeDelta -= 360;
+  if (longitudeDelta < -180) longitudeDelta += 360;
+  let longitude = origin.longitude + longitudeDelta * progress;
+  if (longitude > 180) longitude -= 360;
+  if (longitude < -180) longitude += 360;
+  return {
+    latitude: origin.latitude + (destination.latitude - origin.latitude) * progress,
+    longitude,
+  };
+}
+
 async function addTimeZone(place: Airport | null) {
   if (!place) return;
   const cacheKey = `${place.latitude.toFixed(2)},${place.longitude.toFixed(2)}`;
@@ -151,10 +164,22 @@ export async function resolveFlight(leg: FlightLeg) {
         estimatedArrival = new Date(now + (remaining / usefulKmh) * 3_600_000 + 15 * 60_000).toISOString();
       } else progress = 0.5;
     }
-  } else if (Number.isFinite(scheduledMs) && now > scheduledMs + 15 * 60 * 1000 && now < scheduledMs + 8 * 60 * 60 * 1000) {
-    code = "delayed_estimate";
-    label = "Retard estimé";
-    detail = `Aucun signal en vol ${Math.max(15, Math.round((now - scheduledMs) / 60000))} min après l’heure prévue`;
+    if (!aircraft.on_ground && plannedArrival && estimatedArrival && Date.parse(estimatedArrival) - Date.parse(plannedArrival) >= 10 * 60_000) {
+      code = "airborne_delayed";
+      label = "Retard estimé";
+      detail = `Arrivée estimée ${Math.round((Date.parse(estimatedArrival) - Date.parse(plannedArrival)) / 60_000)} min après l’horaire calculé`;
+    }
+  } else if (origin && destination && plannedDurationMinutes && Number.isFinite(scheduledMs) && now >= scheduledMs && now <= scheduledMs + plannedDurationMinutes * 60_000) {
+    progress = Math.max(0.02, Math.min(0.98, (now - scheduledMs) / (plannedDurationMinutes * 60_000)));
+    code = "route_estimate";
+    label = "Trajet estimé";
+    detail = "Position animée selon l’horaire, en attente du signal ADS-B";
+    remainingKm = Math.round((distanceKm || 0) * (1 - progress));
+  } else if (origin && destination && plannedArrival && now > Date.parse(plannedArrival)) {
+    progress = 1;
+    code = "arrived_estimate";
+    label = "Arrivée estimée";
+    detail = "Horaire calculé, sans confirmation officielle";
   } else if (Number.isFinite(scheduledMs) && now > scheduledMs - 90 * 60 * 1000) {
     code = "soon";
     label = "Bientôt";
@@ -187,15 +212,25 @@ export async function resolveFlight(leg: FlightLeg) {
       registration: aircraft.r || null,
       aircraftType: aircraft.t || aircraft.desc || null,
       seenSecondsAgo: Number(aircraft.seen || aircraft.seen_pos || 0),
+      estimated: false,
+    } : origin && destination && progress > 0 ? {
+      ...interpolatePosition(origin, destination, progress),
+      heading: null,
+      altitude: null,
+      speed: null,
+      registration: null,
+      aircraftType: null,
+      seenSecondsAgo: null,
+      estimated: true,
     } : null,
     updatedAt: new Date().toISOString(),
-    source: aircraft ? "ADSB.lol" : "ADSBdb",
+    source: aircraft ? "ADSB.lol" : "ADSBdb + horaire",
   };
 }
 
 export async function resolveFlights(legs: FlightLeg[]) {
   const results = await Promise.all(legs.map(resolveFlight));
-  let activeIndex = results.findIndex((item) => ["airborne", "boarding"].includes(item.status.code));
+  let activeIndex = results.findIndex((item) => ["airborne", "airborne_delayed", "boarding", "route_estimate"].includes(item.status.code));
   if (activeIndex < 0) {
     const upcoming = results.findIndex((item) => Date.parse(item.scheduledDeparture) > Date.now() - 8 * 60 * 60 * 1000);
     activeIndex = upcoming >= 0 ? upcoming : results.length - 1;

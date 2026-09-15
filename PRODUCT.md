@@ -1,66 +1,22 @@
-# Product
+# Bulle d’Air
 
-<!-- impeccable:product-schema 1 -->
+Bulle d’Air permet de créer en une minute un lien éphémère pour suivre un vol avec ses proches.
 
-## Platform
+## Expérience principale
 
-web
+- Le créateur saisit son nom, un ou deux numéros de vol, l’horaire prévu et les voyageurs.
+- Chaque voyageur a un emoji, des initiales ou une photo. Les avatars flottent au-dessus de l’avion sur la carte.
+- Le lien public affiche la route et anime l’avion. Un signal ADS-B réel est utilisé lorsqu’il est disponible ; sinon l’interface indique clairement qu’il s’agit d’une position horaire estimée.
+- Un visiteur peut choisir « Je suis là », donner volontairement sa position, un avatar et un message. Sa présence est mise à jour pendant que la page reste ouverte et peut être supprimée immédiatement.
+- Les notifications de retard restent facultatives et demandent l’autorisation du navigateur.
 
-## Stack
+## Données et limites
 
-delegated: Vite frontend, MapLibre GL map, Netlify Functions, and Netlify Blobs
+- Le créateur reçoit un mot de passe généré une seule fois.
+- Le voyage, les avatars, les messages et les positions expirent ensemble après 48 heures.
+- Au maximum 2 vols, 6 personnes à bord et 30 proches présents sur une carte.
+- Les horaires calculés et positions estimées ne sont pas des informations officielles de compagnie ou d’aéroport.
 
-## Users
+## Sources
 
-- A traveler or organizer creates a temporary public tracking link for friends and family.
-- A recipient opens the link to follow one traveler group without creating an account.
-
-## Product Purpose
-
-Turn a flight number into a friendly shared tracking page with live aircraft position when ADS-B coverage is available, route context, optional delay notifications, and playful passenger representations.
-
-## Positioning
-
-Flight tracking is presented as a shared social moment: the aircraft carries visible passenger bubbles, and each viewer can choose a familiar playful map theme.
-
-## Operating Context
-
-The creator enters one flight or two connecting flights, a planned departure date and time, a username, and traveler avatars. The recipient receives a public link, can opt into browser notifications, and watches the active leg on a world map.
-
-## Capabilities and Constraints
-
-- Flight lookup starts from an IATA or ICAO flight number.
-- ADSBdb resolves route and airport information; ADSB.lol supplies public live ADS-B position when available.
-- Open-Meteo resolves each airport time zone. The flight notebook shows the creator-provided departure, route-based arrival and duration estimates, distance, and live telemetry; it never presents those estimates as official airline data.
-- Terminal and gate remain explicitly unavailable unless a licensed schedule provider is added later.
-- Delay without a commercial status provider is explicitly labeled as an estimate based on the planned departure time and absence of a live airborne signal.
-- Links expire 48 hours after creation and are deleted lazily on access plus by an hourly cleanup function.
-- One or two flight legs are supported.
-- One to eight traveler avatars support emoji, initials, or a compressed photo.
-- The creator chooses a username and receives a generated password once; credentials authorize later theme changes.
-- The public tracking page asks before enabling browser notifications. Notifications require the page to remain open in this MVP.
-- No airline, game, toy, or entertainment brand endorses the app.
-
-## Brand Commitments
-
-- Product name: Bulle d’Air.
-- Pop, modern, playful, optimistic, and clear in French.
-- Four optional map themes: Minecraft, Super Mario, Pokémon, and LEGO, expressed through original color and shape systems without copyrighted character art.
-
-## Evidence on Hand
-
-- ADSBdb public callsign route endpoint was verified with AF123.
-- ADSB.lol public callsign and geographic endpoints were verified live.
-- No paid aviation API key is available; official airline delay claims must not be fabricated.
-
-## Product Principles
-
-- Shared-link recipients get value without an account.
-- Live data uncertainty is visible, never disguised.
-- Permission prompts follow an explicit user action.
-- Personal photos remain attached only to the temporary 48-hour link.
-- The playful visual layer never obscures flight status or route information.
-
-## Accessibility & Inclusion
-
-Keyboard navigation, visible focus, reduced-motion support, sufficient contrast, meaningful status text, and non-color-only status cues are required.
+ADSBdb fournit la route et les aéroports, ADSB.lol fournit la position reçue des transpondeurs, et Open-Meteo fournit le fuseau horaire. Le service reste fonctionnel en mode estimé lorsqu’une source gratuite est indisponible.

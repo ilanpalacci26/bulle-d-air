@@ -1,134 +1,124 @@
 ---
-name: Bulle d’Air
-description: Un tableau de vol transforme en jouet pop partageable.
+name: Bulle d'Air
+description: Un atlas d'aéropostale vivant pour suivre un vol avec ses proches.
 colors:
-  violet: "#7957ff"
-  pink: "#ff5fb7"
-  yellow: "#ffd84d"
-  mint: "#66d9b8"
-  ink: "#24202d"
-  muted: "#6d6877"
-  paper: "#fffdf7"
-  line: "#ddd7e5"
-  surface: "#f6f1ff"
+  ink: "#182134"
+  paper: "#F7F1DF"
+  sky: "#76A8FF"
+  coral: "#FF5F57"
+  yellow: "#FFD84D"
+  mint: "#61D8B3"
+  cobalt: "#506DFF"
 typography:
   display:
-    fontFamily: "Bricolage, Segoe UI, sans-serif"
-    fontSize: "clamp(3.5rem, 6.5vw, 6rem)"
+    fontFamily: "Bricolage, Arial, sans-serif"
+    fontSize: "clamp(4rem, 8vw, 8.5rem)"
     fontWeight: 800
-    lineHeight: 0.9
-    letterSpacing: "-0.04em"
+    lineHeight: 0.82
+    letterSpacing: "-0.075em"
   body:
-    fontFamily: "Bricolage, Segoe UI, sans-serif"
-    fontSize: "16px"
-    fontWeight: 400
-    lineHeight: 1.45
+    fontFamily: "Bricolage, Arial, sans-serif"
+    fontSize: "1rem"
+    fontWeight: 600
+    lineHeight: 1.35
+  label:
+    fontFamily: "Bricolage, Arial, sans-serif"
+    fontSize: "0.82rem"
+    fontWeight: 800
+    letterSpacing: "0.045em"
 rounded:
-  field: "12px"
-  card: "18px"
-  map: "24px"
-  pill: "999px"
+  square: "0px"
+  message: "12px"
+  round: "50%"
+  pill: "30px"
 spacing:
-  xs: "6px"
+  xs: "8px"
   sm: "12px"
-  md: "18px"
-  lg: "28px"
-  xl: "56px"
+  md: "20px"
+  lg: "32px"
 components:
   button-primary:
-    backgroundColor: "{colors.violet}"
-    textColor: "#ffffff"
-    rounded: "{rounded.field}"
-    padding: "14px 20px"
-  input:
-    backgroundColor: "#ffffff"
+    backgroundColor: "{colors.coral}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.field}"
-    padding: "12px 13px"
+    rounded: "{rounded.square}"
+    padding: "0 18px 0 24px"
+    height: "58px"
+  input:
+    backgroundColor: "#FFFFFF"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.square}"
+    padding: "0 14px"
+    height: "52px"
 ---
 
-# Design System: Bulle d’Air
+# Design System: Bulle d'Air
 
 ## Overview
 
-**Creative North Star: "Le distributeur de capsules aeroportuaire"**
+**Creative North Star: "L'Atlas d'Aéropostale Vivant"**
 
-Bulle d’Air reprend la precision d’un tableau de trafic aerien et lui donne le plaisir tactile d’un jouet pop. Les grandes informations restent immediates; la couleur, les bulles de voyageurs et les mondes de carte apportent la surprise sans masquer le statut reel.
+Une carte-jouet pop où le papier, les tampons et les objets détourés rendent le suivi aérien immédiat et chaleureux. L'avion est le personnage principal ; les passagers forment un bouquet de bulles au-dessus de lui et les proches deviennent des épingles-portraits au sol.
 
 **Key Characteristics:**
 
-- Typographie massive et compacte pour la route.
-- Papier chaud, encre aubergine et accents francs.
-- Profondeur douce, angles genereux et petites formes-jouets.
-- Donnees incertaines toujours expliquees en toutes lettres.
+- Carte plein écran avant les données techniques.
+- Une action dominante par surface.
+- Couleurs franches, trait encre et ombres décalées.
+- Mouvement réservé au léger flottement de l'avion.
 
 ## Colors
 
-Le violet porte l’action et la marque; jaune, rose et menthe signalent les moments joyeux sans remplacer les etats fonctionnels. Le papier chaud domine afin que la carte et les avatars restent les objets les plus vivants.
+La palette associe un papier crème et une encre bleu nuit à des accents francs de carnet de voyage.
 
-**The Confetti, Not Wallpaper Rule.** Les accents s’emploient en petites zones nettes; les grandes surfaces restent papier ou lavande.
+**The Ink Outline Rule.** Les objets interactifs importants portent un trait encre de 2 px ; la couleur ne remplace jamais leur silhouette.
 
 ## Typography
 
-**Display Font:** Bricolage Grotesque (avec Segoe UI en repli)  
-**Body Font:** Bricolage Grotesque (avec Segoe UI en repli)
+**Display Font:** Bricolage Grotesque (Arial fallback)
+**Body Font:** Bricolage Grotesque (Arial fallback)
 
-La graisse forte fait ressembler les routes a une signaletique d’aeroport contemporaine. Le corps garde une lecture familiere et compacte.
-
-**The Route Is the Hero Rule.** Une route ne concurrence jamais un autre titre de meme poids dans le premier ecran.
+Les titres sont très compacts et expressifs. Dans l'application de suivi, les textes conservent des tailles fixes et lisibles afin que la carte reste stable.
 
 ## Layout
 
-La creation utilise un ecran scinde jusqu’a 1000 px, puis une seule colonne. Le suivi reserve le maximum de place a une carte encadree, avec les informations de vol au-dessus et un quai de voyageurs en dessous. Les espacements suivent une cadence de 6, 12, 18, 28 et 56 px; le contenu ne depasse pas 1440 px.
+La création utilise une grande scène asymétrique puis un formulaire blanc centré. Le suivi est fixé au viewport : carte plein écran, barre de vol en haut, état en bas à gauche et action « Je suis là » en bas à droite. Sous 760 px, le formulaire passe en deux colonnes compactes et la présence devient une feuille remontant du bas.
 
 ## Elevation & Depth
 
-Le systeme combine surfaces tonales et ombres diffuses. Les ombres servent uniquement a soulever les commandes, les bulles et les panneaux flottants au-dessus de la carte.
-
-**The One Lift Rule.** Un element ne cumule jamais contour lourd, ombre dure et halo.
+Les ombres sont structurelles, opaques et décalées (`4px 5px 0 #182134` en standard). Elles donnent aux éléments le caractère d'autocollants posés sur la carte ; aucune ombre diffuse décorative ni effet de verre.
 
 ## Shapes
 
-Les champs ont des coins de 12 px, les cartes 18 px, la scene cartographique 24 px et les statuts une forme pilule. Les avatars restent circulaires; chaque univers peut modifier la silhouette de l’avion et des aeroports.
+Les panneaux, champs et boutons principaux restent carrés. Les portraits, le bouton de présence et les marqueurs utilisent le cercle ou la pilule uniquement lorsque leur fonction l'exige.
 
 ## Components
 
 ### Buttons
 
-- **Primary:** violet plein, blanc, graisse forte, angle 12 px et ombre violette diffuse.
-- **Focus:** contour violet de 3 px decale de 3 px.
-- **Secondary:** papier blanc, trait lavande et aucune ombre permanente.
-
-### Chips
-
-Les vols et statuts sont des pilules courtes. La selection reprend une couleur du theme mais conserve un contraste d’encre.
-
-### Cards / Containers
-
-Les surfaces sont blanches ou lavande pale, avec un contour fin et une ombre ambiante seulement lorsqu’elles flottent.
+Les actions primaires sont corail, carrées, bordées de 2 px et accompagnées d'une ombre encre. Le focus utilise un contour cobalt de 3 px ; l'état actif réduit physiquement l'ombre.
 
 ### Inputs / Fields
 
-Fond blanc, trait lavande et angle 12 px. Le focus combine trait violet et halo translucide de 4 px.
+Fond blanc, hauteur 52 px, bord encre de 2 px et aucun arrondi. Au focus, le bord devient cobalt avec un halo discret.
 
-### Flight Map
+### Navigation
 
-La carte est la scene signature. Chaque theme change simultanement la route, les marqueurs, l’avion et les ornements; les controles et messages de donnees gardent une grammaire commune.
+La barre est une bande de papier compacte avec une marque ronde jaune. Sur la carte, elle flotte à 10–20 px des bords et reste visuellement secondaire au trajet.
 
-### Flight Notebook
+### Avion-bouquet
 
-Le carnet de vol associe une carte claire sur papier teinte a un tableau horaire en encre sombre. Depart et arrivee utilisent deux points colores, tandis que la duree occupe l’axe central; les donnees de telemetrie restent dans de petites cases calmes sous le tableau.
+Le marqueur signature associe l'avion corail à des portraits circulaires reliés au-dessus. MapLibre possède toujours le transform du marqueur ; le flottement s'applique uniquement à son enfant pour préserver la position géographique.
 
 ## Do's and Don'ts
 
 ### Do:
 
-- **Do** laisser respirer la route et le statut avant les controles.
-- **Do** montrer chaque voyageur comme une bulle distincte.
-- **Do** nommer explicitement les estimations et absences de signal.
+- **Do** laisser la carte dominer l'écran de suivi.
+- **Do** étiqueter explicitement une position ou une arrivée estimée.
+- **Do** conserver une seule action corail dominante.
 
 ### Don't:
 
-- **Don't** utiliser des illustrations ou logos officiels des univers cites.
-- **Don't** remplacer la hierarchie par une pluie de couleurs.
-- **Don't** cacher une information de vol importante dans une animation.
+- **Don't** transformer l'expérience en tableau de bord ou en grille de cartes.
+- **Don't** employer de verre, de dégradé décoratif ou de texte en dégradé.
+- **Don't** animer le transform du marqueur MapLibre lui-même.

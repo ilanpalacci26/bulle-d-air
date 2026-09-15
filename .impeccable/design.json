@@ -1,63 +1,62 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-03T10:15:00+02:00",
-  "title": "Design System: Bulle d’Air",
+  "generatedAt": "2026-09-15T14:35:00.000Z",
+  "title": "Design System: Bulle d'Air",
   "extensions": {
     "colorMeta": {
-      "violet": { "role": "primary", "displayName": "Violet de piste", "canonical": "#7957ff", "tonalRamp": ["#21134f", "#3e267e", "#5b3dac", "#7957ff", "#9b83ff", "#bbaaff", "#ddd4ff", "#f6f1ff"] },
-      "paper": { "role": "neutral", "displayName": "Papier cabine", "canonical": "#fffdf7", "tonalRamp": ["#24202d", "#514b58", "#7c7582", "#aaa3ac", "#d4ced5", "#eee9ec", "#f8f4f2", "#fffdf7"] }
+      "ink": { "role": "neutral", "displayName": "Encre de nuit", "canonical": "#182134", "tonalRamp": ["#0b101a", "#182134", "#34415a", "#59657b", "#8992a3", "#bcc2cc", "#e2e5e9", "#f6f7f8"] },
+      "paper": { "role": "neutral", "displayName": "Papier crème", "canonical": "#F7F1DF", "tonalRamp": ["#2a271f", "#514a39", "#7b7158", "#a69a79", "#cfc5a5", "#e6dec6", "#f7f1df", "#fffdf7"] },
+      "sky": { "role": "primary", "displayName": "Ciel postal", "canonical": "#76A8FF", "tonalRamp": ["#0b234d", "#173f80", "#285fb4", "#4381df", "#76a8ff", "#a1c3ff", "#cbdcff", "#eef5ff"] },
+      "coral": { "role": "secondary", "displayName": "Corail balise", "canonical": "#FF5F57", "tonalRamp": ["#4c0b0a", "#7e1815", "#ad2823", "#db3e38", "#ff5f57", "#ff918c", "#ffc0bd", "#ffe9e8"] },
+      "yellow": { "role": "tertiary", "displayName": "Jaune tampon", "canonical": "#FFD84D", "tonalRamp": ["#403300", "#6b5700", "#967b08", "#c5a51f", "#ffd84d", "#ffe77f", "#fff1b0", "#fff9df"] },
+      "mint": { "role": "tertiary", "displayName": "Menthe signal", "canonical": "#61D8B3", "tonalRamp": ["#073c2e", "#0d644d", "#198b6d", "#30b38f", "#61d8b3", "#91e5ca", "#bcefe0", "#e8faf4"] }
     },
     "typographyMeta": {
-      "display": { "displayName": "Signaletique", "purpose": "Routes et promesses principales." },
-      "body": { "displayName": "Cabine", "purpose": "Formulaires, explications et statuts." }
+      "display": { "displayName": "Grand titre", "purpose": "Promesse principale de la page de création." },
+      "body": { "displayName": "Texte courant", "purpose": "Instructions et données de vol lisibles." },
+      "label": { "displayName": "Étiquette", "purpose": "Champs, tampons et statuts courts." }
     },
     "shadows": [
-      { "name": "lift-violet", "value": "0 8px 18px rgba(121,87,255,.24)", "purpose": "Marque et actions principales." },
-      { "name": "map-float", "value": "0 14px 30px rgba(41,34,55,.18)", "purpose": "Panneaux flottant sur la carte." }
+      { "name": "sticker", "value": "4px 5px 0 #182134", "purpose": "Séparer une action ou un panneau du papier." },
+      { "name": "ticket", "value": "8px 9px 0 #182134", "purpose": "Soulever les grandes surfaces uniques." }
     ],
     "motion": [
-      { "name": "state-fast", "value": "180ms ease", "purpose": "Focus, survol et selection." }
+      { "name": "cruise", "value": "2.6s ease-in-out infinite", "purpose": "Léger flottement du jouet-avion, neutralisé en mouvement réduit." },
+      { "name": "action", "value": "160ms", "purpose": "Réponse tactile des boutons." }
     ],
-    "breakpoints": [
-      { "name": "stack", "value": "1000px" },
-      { "name": "mobile", "value": "650px" }
-    ]
+    "breakpoints": [{ "name": "mobile", "value": "760px" }]
   },
   "components": [
     {
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Action unique de creation.",
-      "html": "<button class=\"ds-primary\">Creer le lien magique</button>",
-      "css": ".ds-primary{border:0;border-radius:12px;padding:14px 20px;background:#7957ff;color:#fff;font:750 16px Bricolage,Segoe UI,sans-serif;box-shadow:0 8px 18px rgba(121,87,255,.24);transition:transform .18s}.ds-primary:hover{transform:translateY(-2px)}.ds-primary:focus-visible{outline:3px solid #7957ff;outline-offset:3px}"
-    },
-    {
-      "name": "Flight Chip",
-      "kind": "chip",
-      "description": "Numero de vol court et selectionnable.",
-      "html": "<span class=\"ds-chip\">AF123 · escale</span>",
-      "css": ".ds-chip{display:inline-block;border-radius:999px;padding:6px 10px;background:#ffd84d;color:#24202d;font:750 12px Bricolage,Segoe UI,sans-serif}"
+      "description": "Action dominante corail, tactile et détourée.",
+      "html": "<button class=\"ds-btn-primary\"><span>Créer le lien</span><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg></button>",
+      "css": ".ds-btn-primary{width:100%;height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 18px 0 24px;border:2px solid #182134;background:#ff5f57;color:#182134;box-shadow:4px 5px 0 #182134;font:800 17px Bricolage,Arial,sans-serif;cursor:pointer;transition:transform .16s,box-shadow .16s}.ds-btn-primary svg{width:20px;fill:none;stroke:currentColor;stroke-width:2}.ds-btn-primary:hover{transform:translate(-1px,-2px);box-shadow:6px 7px 0 #182134}.ds-btn-primary:focus-visible{outline:3px solid #506dff;outline-offset:3px}.ds-btn-primary:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #182134}"
     },
     {
       "name": "Text Field",
       "kind": "input",
       "refersTo": "input",
-      "description": "Champ calme avec focus net.",
-      "html": "<input class=\"ds-input\" value=\"AF123\" aria-label=\"Numero de vol\">",
-      "css": ".ds-input{border:1.5px solid #ddd7e5;border-radius:12px;background:#fff;color:#24202d;padding:12px 13px;font:16px Bricolage,Segoe UI,sans-serif}.ds-input:hover{border-color:#aaa1b7}.ds-input:focus-visible{outline:0;border-color:#7957ff;box-shadow:0 0 0 4px rgba(121,87,255,.14)}"
+      "description": "Champ carré et direct, comme une zone à remplir sur un billet.",
+      "html": "<label class=\"ds-field\"><span>NUMÉRO DE VOL</span><input value=\"AF123\"></label>",
+      "css": ".ds-field{display:grid;gap:8px;font:800 13px Bricolage,Arial,sans-serif;color:#182134}.ds-field input{height:52px;border:2px solid #182134;border-radius:0;padding:0 14px;background:#fff;color:#182134;font:600 16px Bricolage,Arial,sans-serif}.ds-field input:focus-visible{outline:3px solid rgba(80,109,255,.25);border-color:#506dff}"
+    },
+    {
+      "name": "Live Presence",
+      "kind": "custom",
+      "description": "Portrait au sol avec message volontaire.",
+      "html": "<div class=\"ds-presence\"><span>On vous attend !</span><b>🦊</b><strong>Alex</strong></div>",
+      "css": ".ds-presence{display:grid;justify-items:center;color:#182134;font-family:Bricolage,Arial,sans-serif}.ds-presence span{padding:7px 10px;border:2px solid #182134;border-radius:12px;background:#fff;font-size:12px;font-weight:700}.ds-presence b{display:grid;place-items:center;width:50px;height:50px;margin-top:5px;border:3px solid #182134;border-radius:50% 50% 50% 8px;background:#70a7ff;font-size:23px}.ds-presence strong{margin-top:5px;padding:3px 7px;background:#182134;color:#fff;font-size:11px}"
     }
   ],
   "narrative": {
-    "northStar": "Le distributeur de capsules aeroportuaire",
-    "overview": "Bulle d’Air reprend la precision d’un tableau de trafic aerien et lui donne le plaisir tactile d’un jouet pop.",
-    "keyCharacteristics": ["Typographie massive et compacte pour la route.", "Papier chaud, encre aubergine et accents francs.", "Profondeur douce, angles genereux et petites formes-jouets.", "Donnees incertaines toujours expliquees en toutes lettres."],
-    "rules": [
-      { "name": "The Confetti, Not Wallpaper Rule", "body": "Les accents s’emploient en petites zones nettes; les grandes surfaces restent papier ou lavande.", "section": "colors" },
-      { "name": "The Route Is the Hero Rule", "body": "Une route ne concurrence jamais un autre titre de meme poids dans le premier ecran.", "section": "typography" },
-      { "name": "The One Lift Rule", "body": "Un element ne cumule jamais contour lourd, ombre dure et halo.", "section": "elevation" }
-    ],
-    "dos": ["Do laisser respirer la route et le statut avant les controles.", "Do montrer chaque voyageur comme une bulle distincte.", "Do nommer explicitement les estimations et absences de signal."],
-    "donts": ["Don't utiliser des illustrations ou logos officiels des univers cites.", "Don't remplacer la hierarchie par une pluie de couleurs.", "Don't cacher une information de vol importante dans une animation."]
+    "northStar": "L'Atlas d'Aéropostale Vivant",
+    "overview": "Une carte-jouet pop où le papier, les tampons et les objets détourés rendent le suivi aérien immédiat et chaleureux. L'avion est le personnage principal ; les passagers forment un bouquet de bulles au-dessus de lui et les proches deviennent des épingles-portraits au sol.",
+    "keyCharacteristics": ["Carte plein écran avant les données techniques.", "Une action dominante par surface.", "Couleurs franches, trait encre et ombres décalées.", "Mouvement réservé au léger flottement de l'avion."],
+    "rules": [{ "name": "The Ink Outline Rule", "body": "Les objets interactifs importants portent un trait encre de 2 px ; la couleur ne remplace jamais leur silhouette.", "section": "colors" }],
+    "dos": ["Do laisser la carte dominer l'écran de suivi.", "Do étiqueter explicitement une position ou une arrivée estimée.", "Do conserver une seule action corail dominante."],
+    "donts": ["Don't transformer l'expérience en tableau de bord ou en grille de cartes.", "Don't employer de verre, de dégradé décoratif ou de texte en dégradé.", "Don't animer le transform du marqueur MapLibre lui-même."]
   }
 }
