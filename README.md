@@ -7,7 +7,7 @@ Bulle d’Air transforme un ou deux numéros de vol en lien public de suivi, act
 - création d’un lien sans compte pour un ou deux vols ;
 - résolution des routes et aéroports via ADSBdb ;
 - position ADS-B en direct via ADSB.lol lorsqu’elle est disponible ;
-- carte plein écran avec position réelle lorsqu’un signal ADS-B est reçu, ou animation horaire clairement étiquetée comme estimée ;
+- carte plein écran : l’avion apparaît uniquement lorsqu’une position ADS-B récente correspondant au vol est reçue ; aucun déplacement horaire inventé ;
 - ETA recalculée pendant le vol et horaires affichés dans le fuseau de chaque aéroport via Open-Meteo ;
 - 1 à 6 avatars par emoji, initiales ou photo compressée ;
 - partage volontaire et révocable de la position d’un proche, accompagné de son avatar et d’un message ;
@@ -18,7 +18,7 @@ Bulle d’Air transforme un ou deux numéros de vol en lien public de suivi, act
 
 ## Limite importante
 
-Sans clé de fournisseur aérien commercial, le retard, l’arrivée et la durée sont des estimations transparentes : l’application combine l’heure prévue saisie par le créateur, la distance de la route et, en vol, la position et la vitesse ADS-B. Les terminaux et portes sont affichés comme non communiqués. Ce ne sont pas des informations officielles de compagnie. Les notifications de ce MVP nécessitent que la page reste ouverte.
+Sans clé de fournisseur aérien commercial, le retard, l’arrivée et la durée sont des estimations transparentes : l’application combine l’heure prévue saisie par le créateur, la distance de la route et, en vol, la position et la vitesse ADS-B. Si le signal ADS-B est absent ou ancien, l’avion n’est pas localisé sur la carte. Ce ne sont pas des informations officielles de compagnie. Les notifications de ce MVP nécessitent que la page reste ouverte.
 
 ## Développement
 

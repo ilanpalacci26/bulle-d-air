@@ -43,7 +43,10 @@ const {
 
   await page.goto(url, { waitUntil: "domcontentloaded" });
   await page.waitForSelector(".maplibregl-canvas", { timeout: 15000 });
-  await page.waitForSelector(".plane-marker", { timeout: 30000 });
+  await page.waitForSelector(".flight-state", { timeout: 30000 });
+  const desktopHasSignal = (await page.locator(".flight-state span").textContent()).includes("ADS-B récente");
+  if ((await page.locator(".plane-marker").count()) !== Number(desktopHasSignal))
+    throw new Error("Le marqueur avion ne correspond pas à l’état du signal ADS-B.");
   await page.screenshot({
     path: path.resolve(".impeccable/review/tracker-desktop.png"),
   });
@@ -63,24 +66,19 @@ const {
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload({ waitUntil: "domcontentloaded" });
-  await page.waitForSelector(".plane-marker", { timeout: 30000 });
+  await page.waitForSelector(".flight-state", { timeout: 30000 });
   await page.screenshot({
     path: path.resolve(".impeccable/review/tracker-mobile.png"),
   });
   const metrics = await page.evaluate(() => {
-    const plane = document
-      .querySelector(".plane-marker")
-      .getBoundingClientRect();
+    const plane = document.querySelector(".plane-marker")?.getBoundingClientRect();
     return {
       viewport: innerWidth,
       scrollWidth: document.documentElement.scrollWidth,
       mapHeight: document.querySelector("#map").getBoundingClientRect().height,
       crew: document.querySelectorAll(".air-crew>span").length,
-      planeVisible:
-        plane.right > 0 &&
-        plane.left < innerWidth &&
-        plane.bottom > 0 &&
-        plane.top < innerHeight,
+      planeVisible: Boolean(plane && plane.right > 0 && plane.left < innerWidth && plane.bottom > 0 && plane.top < innerHeight),
+      hasSignal: document.querySelector(".flight-state span")?.textContent.includes("ADS-B récente"),
     };
   });
   await page.click("#here-button");
@@ -100,8 +98,8 @@ const {
     errors.length ||
     metrics.scrollWidth > metrics.viewport ||
     metrics.mapHeight !== 844 ||
-    metrics.crew !== 3 ||
-    !metrics.planeVisible
+    metrics.crew !== (metrics.hasSignal ? 3 : 0) ||
+    metrics.planeVisible !== metrics.hasSignal
   )
     process.exit(1);
 })().catch((error) => {

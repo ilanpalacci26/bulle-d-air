@@ -23,7 +23,6 @@ let passengers = [
 ];
 let map,
   pollTimer,
-  moveTimer,
   locationWatch,
   currentTrip,
   currentTracking,
@@ -124,6 +123,7 @@ function drawPassengers() {
 }
 
 function bindCreate() {
+  document.querySelector("#custom-id").pattern = "[A-Za-z0-9_\\-]{4,24}";
   drawPassengers();
   document.querySelector("#add-leg").addEventListener("click", () => {
     document
@@ -378,16 +378,14 @@ function drawTracker(data, first) {
       data.tracking.legs[data.tracking.activeIndex] || data.tracking.legs[0],
     origin = leg.origin?.iata || "•••",
     destination = leg.destination?.iata || "•••";
-  const sourceLabel = leg.position?.estimated
-    ? "Trajet horaire estimé"
-    : leg.position
-      ? "Position ADS-B en direct"
-      : "En attente du signal";
+  const sourceLabel = leg.position
+    ? "Position ADS-B récente"
+    : "Aucune position récente";
   document.querySelector("#flight-summary").innerHTML =
     `<strong>${escapeHtml(leg.number)}</strong><span>${origin} <b>→</b> ${destination}</span>`;
   maybeNotify(leg);
   document.querySelector("#flight-card").innerHTML =
-    `<div class="flight-state"><i class="status-dot ${leg.position?.estimated ? "estimated" : ""}"></i><div><strong>${escapeHtml(leg.status.label)}</strong><span>${escapeHtml(sourceLabel)}</span></div></div><div class="flight-times"><span><small>Départ prévu</small><strong>${formatTime(leg.scheduledDeparture, leg.origin?.timeZone)}</strong></span><b>${Math.round((leg.progress || 0) * 100)}%</b><span><small>Arrivée estimée</small><strong>${formatTime(leg.estimatedArrival, leg.destination?.timeZone)}</strong></span></div>`;
+    `<div class="flight-state"><i class="status-dot ${leg.position ? "" : "estimated"}"></i><div><strong>${escapeHtml(leg.status.label)}</strong><span>${escapeHtml(sourceLabel)}</span></div></div><div class="flight-times"><span><small>Départ prévu</small><strong>${formatTime(leg.scheduledDeparture, leg.origin?.timeZone)}</strong></span><b>${leg.progress == null ? "—" : `${Math.round(leg.progress * 100)}%`}</b><span><small>Arrivée estimée</small><strong>${formatTime(leg.estimatedArrival, leg.destination?.timeZone)}</strong></span></div>`;
   drawMapData(leg, data.trip.passengers, data.presences || [], first);
   const count = (data.presences || []).length,
     badge = document.querySelector("#friends-count");
@@ -410,7 +408,9 @@ function drawMapData(leg, crew, presences, first) {
     if (leg.position) {
       setPlaneMarker(leg.position, crew);
       coordinates.push([leg.position.longitude, leg.position.latitude]);
-      animateEstimatedPlane(leg);
+    } else if (planeMarker) {
+      planeMarker.remove();
+      planeMarker = null;
     }
     syncPresenceMarkers(presences);
     presences.forEach((person) =>
@@ -476,31 +476,6 @@ function setPlaneMarker(position, crew) {
       .addTo(map);
   } else planeMarker.setLngLat([position.longitude, position.latitude]);
 }
-function animateEstimatedPlane(leg) {
-  clearInterval(moveTimer);
-  if (
-    !leg.position?.estimated ||
-    !leg.origin ||
-    !leg.destination ||
-    !leg.plannedDurationMinutes
-  )
-    return;
-  moveTimer = setInterval(() => {
-    const progress = Math.max(
-        0.02,
-        Math.min(
-          0.98,
-          (Date.now() - Date.parse(leg.scheduledDeparture)) /
-            (leg.plannedDurationMinutes * 60_000),
-        ),
-      ),
-      point = routePoints(leg.origin, leg.destination, 200)[
-        Math.round(progress * 200)
-      ];
-    if (planeMarker && point) planeMarker.setLngLat(point);
-  }, 1000);
-}
-
 function syncPresenceMarkers(presences) {
   const active = new Set(presences.map((person) => person.id));
   presenceMarkers.forEach((marker, id) => {
@@ -747,10 +722,9 @@ function formatTime(value, timeZone) {
 }
 function clearRuntime() {
   clearInterval(pollTimer);
-  clearInterval(moveTimer);
   if (locationWatch != null && navigator.geolocation)
     navigator.geolocation.clearWatch(locationWatch);
-  pollTimer = moveTimer = locationWatch = null;
+  pollTimer = locationWatch = null;
   if (map) map.remove();
   map = planeMarker = null;
   presenceMarkers.clear();

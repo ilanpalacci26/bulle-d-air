@@ -7,7 +7,7 @@
     "dev": "netlify dev",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --check src/main.js",
+    "test": "node --check src/main.js && node --experimental-strip-types tests/flight-position.mjs",
     "test:e2e": "node tests/e2e.cjs"
   },
   "dependencies": {
