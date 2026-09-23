@@ -16,7 +16,12 @@ const { chromium } = require("C:/Users/ilanp/.cache/codex-runtimes/codex-primary
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(url, { waitUntil: "domcontentloaded" });
   await page.waitForSelector(".flight-state", { timeout: 30000 });
-  await page.waitForSelector(".plane-marker", { timeout: 30000 });
+  try {
+    await page.waitForSelector(".plane-marker", { timeout: 60000 });
+  } catch (error) {
+    const state = await page.locator(".flight-state").innerText().catch(() => "carte indisponible");
+    throw new Error(`${error.message}\nÉtat visible: ${state}\nErreurs: ${errors.join(" | ") || "aucune"}`);
+  }
   const first = await page.locator(".plane-marker").evaluate((element) => element.style.transform);
   await page.click("#notifications");
   await page.screenshot({

@@ -1,11 +1,14 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import * as maplibregl from "maplibre-gl";
+import mapWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import "./style.css";
 import {
   defaultAlertSettings,
   normalizeAlertSettings,
   notificationEvents,
 } from "./notifications.js";
+
+maplibregl.setWorkerUrl(mapWorkerUrl);
 
 const app = document.querySelector("#app");
 const emojis = ["😎", "🥳", "🦊", "🐼", "🐸", "🦄", "🤠", "🛸", "🌈", "🧳"];
