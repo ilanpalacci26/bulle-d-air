@@ -12,13 +12,13 @@ Bulle d’Air transforme un ou deux numéros de vol en lien public de suivi, act
 - 1 à 6 avatars par emoji, initiales ou photo compressée ;
 - partage volontaire et révocable de la position d’un proche, accompagné de son avatar et d’un message ;
 - nom d’utilisateur et mot de passe de gestion généré une seule fois ;
-- notifications navigateur activées uniquement après consentement ;
+- notifications navigateur activées uniquement après consentement, avec seuil réglable de retard et rappel réglable avant l’arrivée ADS-B estimée ;
 - expiration stricte à 48 heures et nettoyage horaire ;
 - stockage temporaire dans Netlify Blobs.
 
 ## Limite importante
 
-Sans clé de fournisseur aérien commercial, le retard, l’arrivée et la durée sont des estimations transparentes : l’application combine l’heure prévue saisie par le créateur, la distance de la route et, en vol, la position et la vitesse ADS-B. Si le signal ADS-B est absent ou ancien, l’avion n’est pas localisé sur la carte. Ce ne sont pas des informations officielles de compagnie. Les notifications de ce MVP nécessitent que la page reste ouverte.
+Sans clé de fournisseur aérien commercial, le retard, l’arrivée et la durée sont des estimations transparentes : l’application combine l’heure prévue saisie par le créateur, la distance de la route et, en vol, la position et la vitesse ADS-B. Si le signal ADS-B est absent ou ancien, l’avion n’est pas localisé sur la carte et le rappel avant l’arrivée ne se déclenche pas. Ce ne sont pas des informations officielles de compagnie. Les notifications de ce MVP nécessitent que la page reste ouverte.
 
 ## Développement
 

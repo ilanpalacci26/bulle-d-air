@@ -1,6 +1,11 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import maplibregl from "maplibre-gl";
 import "./style.css";
+import {
+  defaultAlertSettings,
+  normalizeAlertSettings,
+  notificationEvents,
+} from "./notifications.js";
 
 const app = document.querySelector("#app");
 const emojis = ["😎", "🥳", "🦊", "🐼", "🐸", "🦄", "🤠", "🛸", "🌈", "🧳"];
@@ -289,7 +294,7 @@ function renderSuccess(data) {
 
 function renderTracker(id) {
   clearRuntime();
-  app.innerHTML = `<main class="tracker-page"><div id="map" aria-label="Carte du trajet"></div><div class="map-wash"></div><header class="tracker-top"><a class="brand compact" href="/">Bulle d’Air <span>${icon("plane", 17)}</span></a><div id="flight-summary" class="flight-summary"><span class="skeleton short"></span><span class="skeleton"></span></div><button id="notifications" class="round-button" type="button" aria-label="Activer les notifications">${icon("bell")}</button></header><section id="flight-card" class="flight-card" aria-live="polite"><span class="skeleton"></span><span class="skeleton short"></span></section><div id="friends-count" class="friends-count" hidden></div><button id="here-button" class="here-button" type="button">${icon("pin", 24)} <span>Je suis là</span></button><aside id="presence-sheet" class="presence-sheet" aria-labelledby="presence-title" hidden><button class="sheet-close icon-button" type="button" aria-label="Fermer">${icon("close")}</button><h2 id="presence-title">Faites coucou sur la carte</h2><p>Votre position est partagée seulement pendant que cette page reste ouverte.</p><form id="presence-form"><label><span>Votre prénom</span><input id="viewer-name" maxlength="28" required placeholder="Alex"></label><fieldset><legend>Votre tête sur la carte</legend><div class="viewer-emojis">${emojis
+  app.innerHTML = `<main class="tracker-page"><div id="map" aria-label="Carte du trajet"></div><div class="map-wash"></div><header class="tracker-top"><a class="brand compact" href="/">Bulle d’Air <span>${icon("plane", 17)}</span></a><div id="flight-summary" class="flight-summary"><span class="skeleton short"></span><span class="skeleton"></span></div><button id="notifications" class="round-button" type="button" aria-label="Régler les notifications">${icon("bell")}</button></header><section id="flight-card" class="flight-card" aria-live="polite"><span class="skeleton"></span><span class="skeleton short"></span></section><div id="friends-count" class="friends-count" hidden></div><button id="here-button" class="here-button" type="button">${icon("pin", 24)} <span>Je suis là</span></button><aside id="presence-sheet" class="presence-sheet" aria-labelledby="presence-title" hidden><button class="sheet-close icon-button" type="button" aria-label="Fermer">${icon("close")}</button><h2 id="presence-title">Faites coucou sur la carte</h2><p>Votre position est partagée seulement pendant que cette page reste ouverte.</p><form id="presence-form"><label><span>Votre prénom</span><input id="viewer-name" maxlength="28" required placeholder="Alex"></label><fieldset><legend>Votre tête sur la carte</legend><div class="viewer-emojis">${emojis
     .slice(0, 8)
     .map(
       (emoji, index) =>
@@ -297,11 +302,12 @@ function renderTracker(id) {
     )
     .join(
       "",
-    )}</div><label class="photo-button viewer-photo">Ou une photo<input id="viewer-photo" type="file" accept="image/png,image/jpeg,image/webp"></label></fieldset><label><span>Petit message <small>facultatif</small></span><input id="viewer-message" maxlength="100" placeholder="On vous attend avec des croissants !"></label><p id="presence-error" class="form-error" role="alert"></p><button class="cta" type="submit"><span>Partager ma position</span>${icon("locate")}</button><button id="stop-sharing" class="stop-button" type="button" hidden>${icon("stop")} Arrêter le partage</button></form><p class="sheet-privacy">Vous pourrez arrêter à tout moment. Tout est supprimé avec ce voyage.</p></aside><div id="toast" class="toast" role="status" aria-live="polite"></div></main>`;
-  const sheet = document.querySelector("#presence-sheet");
-  sheet.setAttribute("role", "dialog");
-  sheet.setAttribute("aria-modal", "true");
-  sheet.querySelector(":scope > p").textContent =
+    )}</div><label class="photo-button viewer-photo">Ou une photo<input id="viewer-photo" type="file" accept="image/png,image/jpeg,image/webp"></label></fieldset><label><span>Petit message <small>facultatif</small></span><input id="viewer-message" maxlength="100" placeholder="On vous attend avec des croissants !"></label><p id="presence-error" class="form-error" role="alert"></p><button class="cta" type="submit"><span>Partager ma position</span>${icon("locate")}</button><button id="stop-sharing" class="stop-button" type="button" hidden>${icon("stop")} Arrêter le partage</button></form><p class="sheet-privacy">Vous pourrez arrêter à tout moment. Tout est supprimé avec ce voyage.</p></aside><aside id="notification-sheet" class="presence-sheet notification-sheet" aria-labelledby="notification-title" hidden><button class="sheet-close icon-button" type="button" aria-label="Fermer">${icon("close")}</button><h2 id="notification-title">Gardez un œil sur l’heure.</h2><p>Choisissez vos alertes pour ce vol.</p><form id="notification-form"><label class="alert-option"><input id="delay-enabled" type="checkbox" checked><span><strong>Retard important</strong><small>Me prévenir à partir de</small></span><span class="minute-field"><input id="delay-minutes" type="number" min="5" max="180" step="5" value="15" aria-label="Minutes de retard"> min</span></label><label class="alert-option"><input id="arrival-enabled" type="checkbox" checked><span><strong>Il faut partir</strong><small>Me prévenir avant l’arrivée estimée</small></span><span class="minute-field"><input id="arrival-minutes" type="number" min="5" max="240" step="5" value="45" aria-label="Minutes avant l’arrivée"> min</span></label><button class="cta" type="submit"><span>Activer mes alertes</span>${icon("bell")}</button></form><p class="sheet-privacy">Les heures sont recalculées avec la position ADS-B. Gardez cette page ouverte pour recevoir les alertes.</p></aside><div id="toast" class="toast" role="status" aria-live="polite"></div></main>`;
+  document.querySelectorAll(".presence-sheet").forEach((sheet) => {
+    sheet.setAttribute("role", "dialog");
+    sheet.setAttribute("aria-modal", "true");
+  });
+  document.querySelector("#presence-sheet").querySelector(":scope > p").textContent =
     "Votre position se met à jour tant que cette page reste ouverte.";
   bindTracker(id);
 }
@@ -310,11 +316,11 @@ function bindTracker(id) {
   currentTrip = id;
   document.querySelector("#here-button").addEventListener("click", (event) => {
     sheetTrigger = event.currentTarget;
-    toggleSheet(true);
+    toggleSheet("#presence-sheet", true, "#viewer-name");
   });
   document
-    .querySelector(".sheet-close")
-    .addEventListener("click", () => toggleSheet(false));
+    .querySelector("#presence-sheet .sheet-close")
+    .addEventListener("click", () => toggleSheet("#presence-sheet", false));
   document
     .querySelector("#presence-sheet")
     .addEventListener("keydown", trapSheetKeys);
@@ -324,9 +330,13 @@ function bindTracker(id) {
   document
     .querySelector("#stop-sharing")
     .addEventListener("click", stopSharing);
+  document.querySelector("#notifications").addEventListener("click", openNotificationSettings);
   document
-    .querySelector("#notifications")
-    .addEventListener("click", enableNotifications);
+    .querySelector("#notification-sheet .sheet-close")
+    .addEventListener("click", () => toggleSheet("#notification-sheet", false));
+  document.querySelector("#notification-sheet").addEventListener("keydown", trapSheetKeys);
+  document.querySelector("#notification-form").addEventListener("submit", enableNotifications);
+  loadNotificationSettings();
   initMap();
   refreshTrip(true);
   pollTimer = setInterval(() => refreshTrip(false), 12_000);
@@ -508,19 +518,22 @@ function fitCoordinates(points) {
     duration: 900,
   });
 }
-function toggleSheet(show) {
-  const sheet = document.querySelector("#presence-sheet");
+function toggleSheet(selector, show, focusSelector) {
+  const sheet = document.querySelector(selector);
+  document.querySelectorAll(".presence-sheet").forEach((item) => {
+    if (item !== sheet) item.hidden = true;
+  });
   sheet.hidden = !show;
   document.body.classList.toggle("sheet-open", show);
   if (show)
-    setTimeout(() => document.querySelector("#viewer-name").focus(), 80);
+    setTimeout(() => document.querySelector(focusSelector || `${selector} .sheet-close`).focus(), 80);
   else sheetTrigger?.focus();
 }
 
 function trapSheetKeys(event) {
   const sheet = event.currentTarget;
   if (event.key === "Escape") {
-    toggleSheet(false);
+    toggleSheet(`#${sheet.id}`, false);
     return;
   }
   if (event.key !== "Tab") return;
@@ -655,37 +668,69 @@ async function stopSharing() {
   cta.disabled = false;
   cta.querySelector("span").textContent = "Partager ma position";
   document.querySelector("#stop-sharing").hidden = true;
-  toggleSheet(false);
+  toggleSheet("#presence-sheet", false);
   showToast("Partage arrêté.");
   refreshTrip(false);
 }
 
-async function enableNotifications() {
+function alertStorageKey() {
+  return `bulle-alerts-${currentTrip}`;
+}
+function readStoredJson(key, fallback = null) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || "null") ?? fallback;
+  } catch {
+    localStorage.removeItem(key);
+    return fallback;
+  }
+}
+function loadNotificationSettings() {
+  const saved = readStoredJson(alertStorageKey());
+  const settings = normalizeAlertSettings(saved || defaultAlertSettings);
+  document.querySelector("#delay-enabled").checked = settings.delayEnabled;
+  document.querySelector("#delay-minutes").value = settings.delayMinutes;
+  document.querySelector("#arrival-enabled").checked = settings.arrivalEnabled;
+  document.querySelector("#arrival-minutes").value = settings.arrivalMinutes;
+  document.querySelector("#notifications").classList.toggle("active", Boolean(saved));
+}
+function openNotificationSettings(event) {
+  sheetTrigger = event.currentTarget;
+  loadNotificationSettings();
+  toggleSheet("#notification-sheet", true, "#delay-minutes");
+}
+async function enableNotifications(event) {
+  event.preventDefault();
   if (!("Notification" in window)) {
     showToast("Notifications non disponibles ici.");
     return;
   }
   const permission = await Notification.requestPermission();
   if (permission === "granted") {
-    localStorage.setItem(`bulle-notify-${currentTrip}`, "yes");
+    const settings = normalizeAlertSettings({
+      delayEnabled: document.querySelector("#delay-enabled").checked,
+      delayMinutes: document.querySelector("#delay-minutes").value,
+      arrivalEnabled: document.querySelector("#arrival-enabled").checked,
+      arrivalMinutes: document.querySelector("#arrival-minutes").value,
+    });
+    localStorage.setItem(alertStorageKey(), JSON.stringify(settings));
+    localStorage.removeItem(`bulle-alert-state-${currentTrip}`);
     document.querySelector("#notifications").classList.add("active");
-    showToast("Notifications activées.");
+    toggleSheet("#notification-sheet", false);
+    showToast("Alertes personnalisées activées.");
+    if (currentTracking) {
+      const leg = currentTracking.legs[currentTracking.activeIndex] || currentTracking.legs[0];
+      maybeNotify(leg);
+    }
   } else showToast("Notifications non activées.");
 }
 function maybeNotify(leg) {
-  const key = `bulle-status-${currentTrip}`;
-  const previous = localStorage.getItem(key);
-  localStorage.setItem(key, leg.status.code);
-  if (
-    previous &&
-    previous !== leg.status.code &&
-    leg.status.code.includes("delayed") &&
-    localStorage.getItem(`bulle-notify-${currentTrip}`) === "yes" &&
-    Notification.permission === "granted"
-  )
-    new Notification(`${leg.number} · Retard estimé`, {
-      body: leg.status.detail,
-    });
+  const settings = readStoredJson(alertStorageKey());
+  if (!settings || !("Notification" in window) || Notification.permission !== "granted") return;
+  const stateKey = `bulle-alert-state-${currentTrip}`;
+  const previousState = readStoredJson(stateKey, {});
+  const result = notificationEvents(leg, settings, previousState);
+  localStorage.setItem(stateKey, JSON.stringify(result.state));
+  result.events.forEach((notice) => new Notification(notice.title, { body: notice.body }));
 }
 function stopPresenceOnExit() {
   if (!currentTrip) return;

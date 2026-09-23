@@ -47,6 +47,17 @@ const {
   const desktopHasSignal = (await page.locator(".flight-state span").textContent()).includes("ADS-B récente");
   if ((await page.locator(".plane-marker").count()) !== Number(desktopHasSignal))
     throw new Error("Le marqueur avion ne correspond pas à l’état du signal ADS-B.");
+  await page.click("#notifications");
+  await page.fill("#delay-minutes", "20");
+  await page.fill("#arrival-minutes", "60");
+  await page.click('#notification-form .cta[type="submit"]');
+  await page.waitForSelector("#notification-sheet", { state: "hidden" });
+  const alertSettings = await page.evaluate(() => {
+    const trip = new URLSearchParams(location.search).get("trip");
+    return JSON.parse(localStorage.getItem(`bulle-alerts-${trip}`));
+  });
+  if (alertSettings.delayMinutes !== 20 || alertSettings.arrivalMinutes !== 60)
+    throw new Error("Les seuils de notification ne sont pas mémorisés.");
   await page.screenshot({
     path: path.resolve(".impeccable/review/tracker-desktop.png"),
   });
@@ -88,7 +99,7 @@ const {
     throw new Error("Le panneau mobile ne se ferme pas.");
   console.log(
     JSON.stringify(
-      { created: true, presenceCreatedAndRemoved: true, metrics, errors },
+      { created: true, alertsConfigured: alertSettings, presenceCreatedAndRemoved: true, metrics, errors },
       null,
       2,
     ),
