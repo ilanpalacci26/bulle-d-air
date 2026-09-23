@@ -933,6 +933,19 @@ legend {
   color: #5c6474;
   line-height: 1.25;
 }
+.alert-option.simple {
+  grid-template-columns: auto 1fr;
+}
+.route-estimate {
+  min-height: 38px;
+  margin: 0 !important;
+  padding: 10px 12px;
+  border: 1px dashed var(--ink);
+  background: var(--yellow);
+  color: var(--ink) !important;
+  font-size: 0.78rem !important;
+  font-weight: 750;
+}
 .minute-field {
   display: flex;
   align-items: center;

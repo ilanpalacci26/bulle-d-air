@@ -11,9 +11,29 @@ const {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     permissions: ["geolocation", "notifications"],
-    geolocation: { latitude: 48.8566, longitude: 2.3522 },
+    geolocation: { latitude: 37.5665, longitude: 126.978 },
   });
   const page = await context.newPage();
+  await page.addInitScript(() => {
+    const subscription = {
+      toJSON: () => ({
+        endpoint: "https://push.example.test/subscription",
+        expirationTime: null,
+        keys: { p256dh: "test-p256dh-key", auth: "test-auth-key" },
+      }),
+    };
+    Object.defineProperty(navigator, "serviceWorker", {
+      configurable: true,
+      value: {
+        register: async () => ({
+          pushManager: {
+            getSubscription: async () => subscription,
+            subscribe: async () => subscription,
+          },
+        }),
+      },
+    });
+  });
   const errors = [];
   page.on("console", (message) => {
     if (message.type() === "error" && !message.text().includes("favicon"))
@@ -49,14 +69,14 @@ const {
     throw new Error("Le marqueur avion ne correspond pas à l’état du signal ADS-B.");
   await page.click("#notifications");
   await page.fill("#delay-minutes", "20");
-  await page.fill("#arrival-minutes", "60");
+  await page.fill("#arrival-buffer-minutes", "20");
   await page.click('#notification-form .cta[type="submit"]');
   await page.waitForSelector("#notification-sheet", { state: "hidden" });
   const alertSettings = await page.evaluate(() => {
     const trip = new URLSearchParams(location.search).get("trip");
     return JSON.parse(localStorage.getItem(`bulle-alerts-${trip}`));
   });
-  if (alertSettings.delayMinutes !== 20 || alertSettings.arrivalMinutes !== 60)
+  if (alertSettings.delayMinutes !== 20 || alertSettings.arrivalBufferMinutes !== 20 || !alertSettings.arrivedEnabled)
     throw new Error("Les seuils de notification ne sont pas mémorisés.");
   await page.screenshot({
     path: path.resolve(".impeccable/review/tracker-desktop.png"),
@@ -65,7 +85,15 @@ const {
   await page.fill("#viewer-name", "Alex");
   await page.fill("#viewer-message", "On vous attend avec des croissants !");
   await page.click("#presence-form .cta");
-  await page.waitForSelector(".friend-marker", { timeout: 15000 });
+  await page.waitForTimeout(2500);
+  if (!(await page.locator(".friend-marker").count())) {
+    const mapState = await page.evaluate(() => ({
+      canvas: document.querySelectorAll(".maplibregl-canvas").length,
+      markers: document.querySelectorAll(".maplibregl-marker").length,
+      card: document.querySelector("#flight-card")?.innerText,
+    }));
+    throw new Error(`La présence n’est pas rendue sur la carte: ${JSON.stringify({ mapState, errors })}`);
+  }
   const message = await page.locator(".friend-message").textContent();
   if (!message.includes("croissants"))
     throw new Error("La bulle de présence ne contient pas le message.");

@@ -1,5 +1,5 @@
 import "maplibre-gl/dist/maplibre-gl.css";
-import maplibregl from "maplibre-gl";
+import * as maplibregl from "maplibre-gl";
 import "./style.css";
 import {
   defaultAlertSettings,
@@ -302,7 +302,7 @@ function renderTracker(id) {
     )
     .join(
       "",
-    )}</div><label class="photo-button viewer-photo">Ou une photo<input id="viewer-photo" type="file" accept="image/png,image/jpeg,image/webp"></label></fieldset><label><span>Petit message <small>facultatif</small></span><input id="viewer-message" maxlength="100" placeholder="On vous attend avec des croissants !"></label><p id="presence-error" class="form-error" role="alert"></p><button class="cta" type="submit"><span>Partager ma position</span>${icon("locate")}</button><button id="stop-sharing" class="stop-button" type="button" hidden>${icon("stop")} Arrêter le partage</button></form><p class="sheet-privacy">Vous pourrez arrêter à tout moment. Tout est supprimé avec ce voyage.</p></aside><aside id="notification-sheet" class="presence-sheet notification-sheet" aria-labelledby="notification-title" hidden><button class="sheet-close icon-button" type="button" aria-label="Fermer">${icon("close")}</button><h2 id="notification-title">Gardez un œil sur l’heure.</h2><p>Choisissez vos alertes pour ce vol.</p><form id="notification-form"><label class="alert-option"><input id="delay-enabled" type="checkbox" checked><span><strong>Retard important</strong><small>Me prévenir à partir de</small></span><span class="minute-field"><input id="delay-minutes" type="number" min="5" max="180" step="5" value="15" aria-label="Minutes de retard"> min</span></label><label class="alert-option"><input id="arrival-enabled" type="checkbox" checked><span><strong>Il faut partir</strong><small>Me prévenir avant l’arrivée estimée</small></span><span class="minute-field"><input id="arrival-minutes" type="number" min="5" max="240" step="5" value="45" aria-label="Minutes avant l’arrivée"> min</span></label><button class="cta" type="submit"><span>Activer mes alertes</span>${icon("bell")}</button></form><p class="sheet-privacy">Les heures sont recalculées avec la position ADS-B. Gardez cette page ouverte pour recevoir les alertes.</p></aside><div id="toast" class="toast" role="status" aria-live="polite"></div></main>`;
+    )}</div><label class="photo-button viewer-photo">Ou une photo<input id="viewer-photo" type="file" accept="image/png,image/jpeg,image/webp"></label></fieldset><label><span>Petit message <small>facultatif</small></span><input id="viewer-message" maxlength="100" placeholder="On vous attend avec des croissants !"></label><p id="presence-error" class="form-error" role="alert"></p><button class="cta" type="submit"><span>Partager ma position</span>${icon("locate")}</button><button id="stop-sharing" class="stop-button" type="button" hidden>${icon("stop")} Arrêter le partage</button></form><p class="sheet-privacy">Vous pourrez arrêter à tout moment. Tout est supprimé avec ce voyage.</p></aside><aside id="notification-sheet" class="presence-sheet notification-sheet" aria-labelledby="notification-title" hidden><button class="sheet-close icon-button" type="button" aria-label="Fermer">${icon("close")}</button><h2 id="notification-title">Gardez un œil sur l’heure.</h2><p>Les alertes continuent même si vous fermez cette page.</p><form id="notification-form"><label class="alert-option"><input id="delay-enabled" type="checkbox" checked><span><strong>Retard important</strong><small>Me prévenir à partir de</small></span><span class="minute-field"><input id="delay-minutes" type="number" min="5" max="180" step="5" value="15" aria-label="Minutes de retard"> min</span></label><label class="alert-option"><input id="departure-enabled" type="checkbox" checked><span><strong>Quand dois-je partir ?</strong><small>Calculer la route depuis ma position</small></span><span class="minute-field"><input id="arrival-buffer-minutes" type="number" min="0" max="120" step="5" value="15" aria-label="Marge avant l’arrivée"> min avant</span></label><label class="alert-option simple"><input id="arrived-enabled" type="checkbox" checked><span><strong>L’avion est arrivé</strong><small>Me prévenir dès que son arrivée est confirmée</small></span></label><p id="route-estimate" class="route-estimate" aria-live="polite"></p><p id="notification-error" class="form-error" role="alert"></p><button class="cta" type="submit"><span>Activer mes alertes</span>${icon("bell")}</button></form><p class="sheet-privacy">Le calcul routier utilise votre position une fois. Elle disparaît avec ce voyage après 48 h.</p></aside><div id="toast" class="toast" role="status" aria-live="polite"></div></main>`;
   document.querySelectorAll(".presence-sheet").forEach((sheet) => {
     sheet.setAttribute("role", "dialog");
     sheet.setAttribute("aria-modal", "true");
@@ -689,8 +689,13 @@ function loadNotificationSettings() {
   const settings = normalizeAlertSettings(saved || defaultAlertSettings);
   document.querySelector("#delay-enabled").checked = settings.delayEnabled;
   document.querySelector("#delay-minutes").value = settings.delayMinutes;
-  document.querySelector("#arrival-enabled").checked = settings.arrivalEnabled;
-  document.querySelector("#arrival-minutes").value = settings.arrivalMinutes;
+  document.querySelector("#departure-enabled").checked = settings.departureEnabled;
+  document.querySelector("#arrival-buffer-minutes").value = settings.arrivalBufferMinutes;
+  document.querySelector("#arrived-enabled").checked = settings.arrivedEnabled;
+  const route = document.querySelector("#route-estimate");
+  route.textContent = settings.travelMinutes
+    ? `Trajet calculé : environ ${Math.round(settings.travelMinutes)} min jusqu’à l’aéroport.`
+    : "Votre trajet sera calculé au moment de l’activation.";
   document.querySelector("#notifications").classList.toggle("active", Boolean(saved));
 }
 function openNotificationSettings(event) {
@@ -700,37 +705,96 @@ function openNotificationSettings(event) {
 }
 async function enableNotifications(event) {
   event.preventDefault();
-  if (!("Notification" in window)) {
+  const error = document.querySelector("#notification-error");
+  const button = event.submitter;
+  error.textContent = "";
+  if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
     showToast("Notifications non disponibles ici.");
     return;
   }
+  button.disabled = true;
+  button.querySelector("span").textContent = "Activation…";
   const permission = await Notification.requestPermission();
   if (permission === "granted") {
     const settings = normalizeAlertSettings({
       delayEnabled: document.querySelector("#delay-enabled").checked,
       delayMinutes: document.querySelector("#delay-minutes").value,
-      arrivalEnabled: document.querySelector("#arrival-enabled").checked,
-      arrivalMinutes: document.querySelector("#arrival-minutes").value,
+      departureEnabled: document.querySelector("#departure-enabled").checked,
+      arrivalBufferMinutes: document.querySelector("#arrival-buffer-minutes").value,
+      arrivedEnabled: document.querySelector("#arrived-enabled").checked,
     });
-    localStorage.setItem(alertStorageKey(), JSON.stringify(settings));
-    localStorage.removeItem(`bulle-alert-state-${currentTrip}`);
-    document.querySelector("#notifications").classList.add("active");
-    toggleSheet("#notification-sheet", false);
-    showToast("Alertes personnalisées activées.");
-    if (currentTracking) {
-      const leg = currentTracking.legs[currentTracking.activeIndex] || currentTracking.legs[0];
-      maybeNotify(leg);
+    try {
+      const registration = await navigator.serviceWorker.register("/sw.js");
+      const configResponse = await fetch("/api/alerts/config");
+      const config = await configResponse.json();
+      if (!configResponse.ok) throw new Error(config.error || "Configuration push indisponible.");
+      const existingSubscription = await registration.pushManager.getSubscription();
+      const subscription = existingSubscription || await withTimeout(registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: base64UrlToBytes(config.publicKey),
+        }), 15_000, "Le service de notifications met trop de temps à répondre. Réessayez.");
+      const location = settings.departureEnabled ? await currentLocation() : null;
+      const savedPush = readStoredJson(`bulle-push-${currentTrip}`, {});
+      const response = await fetch(`/api/trips/${currentTrip}/alerts`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ...savedPush,
+          subscription: subscription.toJSON(),
+          settings,
+          latitude: location?.coords.latitude,
+          longitude: location?.coords.longitude,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Activation impossible.");
+      const complete = normalizeAlertSettings({ ...settings, travelMinutes: data.travelMinutes });
+      localStorage.setItem(alertStorageKey(), JSON.stringify(complete));
+      localStorage.setItem(`bulle-push-${currentTrip}`, JSON.stringify({ id: data.id, secret: data.secret }));
+      localStorage.removeItem(`bulle-alert-state-${currentTrip}`);
+      document.querySelector("#notifications").classList.add("active");
+      const routeMessage = data.travelMinutes
+        ? `Route : ${data.travelMinutes} min · départ conseillé ${formatTime(data.recommendedDeparture)}.`
+        : "Alertes activées. Le trajet routier n’a pas pu être calculé.";
+      toggleSheet("#notification-sheet", false);
+      showToast(routeMessage);
+    } catch (reason) {
+      error.textContent = reason.message || "Activation impossible.";
     }
-  } else showToast("Notifications non activées.");
+  } else error.textContent = "Autorisez les notifications pour activer les alertes.";
+  button.disabled = false;
+  button.querySelector("span").textContent = "Activer mes alertes";
 }
 function maybeNotify(leg) {
   const settings = readStoredJson(alertStorageKey());
   if (!settings || !("Notification" in window) || Notification.permission !== "granted") return;
+  if (readStoredJson(`bulle-push-${currentTrip}`)) return;
   const stateKey = `bulle-alert-state-${currentTrip}`;
   const previousState = readStoredJson(stateKey, {});
   const result = notificationEvents(leg, settings, previousState);
   localStorage.setItem(stateKey, JSON.stringify(result.state));
   result.events.forEach((notice) => new Notification(notice.title, { body: notice.body }));
+}
+function base64UrlToBytes(value) {
+  const padding = "=".repeat((4 - value.length % 4) % 4);
+  const binary = atob((value + padding).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+}
+function withTimeout(promise, milliseconds, message) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(message)), milliseconds)),
+  ]);
+}
+function currentLocation() {
+  if (!navigator.geolocation) return Promise.reject(new Error("La localisation n’est pas disponible sur cet appareil."));
+  return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(
+    resolve,
+    (reason) => reject(new Error(reason.code === 1
+      ? "Autorisez votre position pour calculer l’heure de départ."
+      : "Votre position est introuvable pour le moment.")),
+    { enableHighAccuracy: true, maximumAge: 60_000, timeout: 15_000 },
+  ));
 }
 function stopPresenceOnExit() {
   if (!currentTrip) return;

@@ -1,8 +1,10 @@
 export const defaultAlertSettings = {
   delayEnabled: true,
   delayMinutes: 15,
-  arrivalEnabled: true,
-  arrivalMinutes: 45,
+  departureEnabled: true,
+  arrivalBufferMinutes: 15,
+  arrivedEnabled: true,
+  travelMinutes: null,
 };
 
 const boundedNumber = (value, fallback, min, max) => {
@@ -16,14 +18,16 @@ export function normalizeAlertSettings(value = {}) {
   return {
     delayEnabled: value.delayEnabled !== false,
     delayMinutes: boundedNumber(value.delayMinutes, 15, 5, 180),
-    arrivalEnabled: value.arrivalEnabled !== false,
-    arrivalMinutes: boundedNumber(value.arrivalMinutes, 45, 5, 240),
+    departureEnabled: value.departureEnabled ?? value.arrivalEnabled ?? true,
+    arrivalBufferMinutes: boundedNumber(value.arrivalBufferMinutes, 15, 0, 120),
+    arrivedEnabled: value.arrivedEnabled !== false,
+    travelMinutes: Number.isFinite(Number(value.travelMinutes)) ? Number(value.travelMinutes) : null,
   };
 }
 
 export function notificationEvents(leg, settingsValue, stateValue = {}, now = Date.now()) {
   const settings = normalizeAlertSettings(settingsValue);
-  const state = { delaySent: false, arrivalSent: false, ...stateValue };
+  const state = { delaySent: false, departureSent: false, arrivedSent: false, ...stateValue };
   const events = [];
   const delay = Number(leg?.delayMinutes);
 
@@ -47,18 +51,28 @@ export function notificationEvents(leg, settingsValue, stateValue = {}, now = Da
     ? Math.ceil((arrivalTime - now) / 60_000)
     : null;
   if (
-    settings.arrivalEnabled &&
-    !state.arrivalSent &&
+    settings.departureEnabled &&
+    !state.departureSent &&
     hasLiveEta &&
+    Number.isFinite(settings.travelMinutes) &&
     minutesUntilArrival > 0 &&
-    minutesUntilArrival <= settings.arrivalMinutes
+    minutesUntilArrival <= settings.travelMinutes + settings.arrivalBufferMinutes
   ) {
     events.push({
-      type: "arrival",
-      title: "C’est le moment de partir ✈️",
-      body: `${leg.number} est attendu dans environ ${minutesUntilArrival} min.`,
+      type: "departure",
+      title: "C’est le moment de partir 🚗✈️",
+      body: `${Math.round(settings.travelMinutes)} min de route pour accueillir ${leg.number} à l’heure.`,
     });
-    state.arrivalSent = true;
+    state.departureSent = true;
+  }
+
+  if (settings.arrivedEnabled && !state.arrivedSent && leg?.status?.code === "arrived") {
+    events.push({
+      type: "arrived",
+      title: `${leg.number} est arrivé 🎉`,
+      body: `${leg.destination?.city || leg.destination?.iata || "L’avion"} : préparez les câlins !`,
+    });
+    state.arrivedSent = true;
   }
 
   return { events, state, minutesUntilArrival };

@@ -8,16 +8,20 @@ const leg = {
   estimatedArrival: "2026-09-23T08:40:00Z",
   timingSource: "live-estimate",
   position: { latitude: 51.3, longitude: -11.1 },
+  status: { code: "airborne" },
+  destination: { city: "Paris", iata: "CDG" },
 };
 const settings = {
   delayEnabled: true,
   delayMinutes: 20,
-  arrivalEnabled: true,
-  arrivalMinutes: 45,
+  departureEnabled: true,
+  arrivalBufferMinutes: 15,
+  arrivedEnabled: true,
+  travelMinutes: 30,
 };
 
 const first = notificationEvents(leg, settings, {}, now);
-assert.deepEqual(first.events.map((event) => event.type), ["delay", "arrival"]);
+assert.deepEqual(first.events.map((event) => event.type), ["delay", "departure"]);
 assert.equal(first.minutesUntilArrival, 40);
 
 const repeated = notificationEvents(leg, settings, first.state, now + 60_000);
@@ -38,5 +42,13 @@ const routeOnly = notificationEvents(
   now,
 );
 assert.equal(routeOnly.events.length, 0, "l’alerte d’arrivée exige une ETA ADS-B en direct");
+
+const arrived = notificationEvents(
+  { ...leg, status: { code: "arrived" } },
+  { ...settings, delayEnabled: false, departureEnabled: false },
+  {},
+  now,
+);
+assert.deepEqual(arrived.events.map((event) => event.type), ["arrived"]);
 
 console.log("Notification thresholds: OK");

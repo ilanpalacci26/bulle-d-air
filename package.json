@@ -7,15 +7,17 @@
     "dev": "netlify dev",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --check src/main.js && node --experimental-strip-types tests/flight-position.mjs && node tests/notifications.mjs",
+    "test": "node --check src/main.js && node --experimental-strip-types tests/flight-position.mjs && node tests/notifications.mjs && node --experimental-strip-types tests/push-alerts.mjs",
     "test:e2e": "node tests/e2e.cjs"
   },
   "dependencies": {
     "@netlify/blobs": "^10.0.10",
     "@netlify/functions": "^5.1.2",
-    "maplibre-gl": "^5.15.0"
+    "maplibre-gl": "^6.11.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@types/web-push": "^3.6.4",
     "vite": "^7.1.7"
   }
 }

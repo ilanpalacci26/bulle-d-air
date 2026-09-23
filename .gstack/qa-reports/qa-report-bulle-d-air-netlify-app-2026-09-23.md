@@ -1,8 +1,8 @@
 # QA Report — Bulle d’Air
 
 **Date:** 2026-09-23  
-**Scope:** notifications, création de voyage, position ADS-B réelle, carte desktop/mobile, présence d’un proche  
-**Résultat:** 8 réussites, 0 échec, 0 blocage
+**Scope:** notifications push, calcul routier, arrivée, création de voyage, position ADS-B réelle, carte desktop/mobile, présence d’un proche
+**Résultat:** 12 réussites, 0 échec, 0 blocage
 
 ## Correction issue du test
 
@@ -14,9 +14,13 @@ Le suivi serveur recevait un HTTP 403 d’ADSB.lol car son `User-Agent` était d
 |---|---|
 | Création d’un lien et génération du mot de passe | Réussi |
 | Réglage d’un seuil de retard à 20 min | Réussi |
-| Réglage d’un rappel 60 min avant l’arrivée | Réussi |
+| Réglage d’une marge de 20 min avant l’arrivée | Réussi |
 | Une alerte déjà envoyée ne se répète pas | Réussi |
 | Le rappel d’arrivée exige une ETA ADS-B fraîche | Réussi |
+| Calcul routier Séoul → ICN : 61 min | Réussi |
+| Déclenchement « il faut partir » = route + marge utilisateur | Réussi |
+| Notification « l’avion est arrivé » | Réussi |
+| Service worker et abonnement push persistant | Réussi |
 | Vol réel DL262, JFK → CDG, callsign DAL262 | Réussi |
 | Le marqueur avion change de position après le rafraîchissement | Réussi |
 | Présence volontaire créée puis supprimée, desktop et mobile sans débordement | Réussi |
@@ -29,4 +33,4 @@ Le suivi serveur recevait un HTTP 403 d’ADSB.lol car son `User-Agent` était d
 
 ## Limite connue et affichée
 
-Les notifications du navigateur nécessitent que la page du voyage reste ouverte. Le rappel « il faut partir » est un seuil choisi avant l’arrivée estimée, pas un calcul du temps de trajet routier jusqu’à l’aéroport.
+La durée routière est une estimation OSRM sans trafic automobile en direct. L’heure d’arrivée de l’avion reste une estimation ADS-B et non une donnée officielle de compagnie.
