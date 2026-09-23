@@ -12,6 +12,9 @@ type Airport = {
 };
 
 const timeout = () => AbortSignal.timeout(8500);
+const adsbHeaders = {
+  "user-agent": "BulleDAir/1.0 (+https://bulle-d-air.netlify.app)",
+};
 const timeZoneCache = new Map<string, string>();
 
 function airport(raw: any): Airport | null {
@@ -105,7 +108,10 @@ export async function resolveFlight(leg: FlightLeg) {
     && requestTime <= scheduledMs + (plannedDurationMinutes ?? 18 * 60) * 60_000 + 4 * 60 * 60 * 1000;
   if (liveWindow) {
     try {
-      const response = await fetch(`https://api.adsb.lol/v2/callsign/${encodeURIComponent(callsign)}`, { signal: timeout() });
+      const response = await fetch(`https://api.adsb.lol/v2/callsign/${encodeURIComponent(callsign)}`, {
+        signal: timeout(),
+        headers: adsbHeaders,
+      });
       if (response.ok) {
         const data = await response.json();
         const expected = String(callsign).trim().toUpperCase();
@@ -189,6 +195,9 @@ export async function resolveFlight(leg: FlightLeg) {
     plannedDurationMinutes,
     plannedArrival,
     estimatedArrival,
+    delayMinutes: plannedArrival && estimatedArrival && aircraft
+      ? Math.max(0, Math.round((Date.parse(estimatedArrival) - Date.parse(plannedArrival)) / 60_000))
+      : null,
     timingSource: aircraft && remainingKm !== null ? "live-estimate" : "route-estimate",
     routeAvailable: Boolean(origin && destination),
     routeError,
